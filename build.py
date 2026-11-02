@@ -105,6 +105,7 @@ icon(180, 0.06).convert("RGB").save(DIST / "apple-touch-icon.png")
                                '<rect x="24" y="62" width="54" height="14" fill="#F5D94E"/><rect x="30" y="20" width="14" height="52" fill="#FBFCFD"/>'
                                '<rect x="30" y="58" width="40" height="14" fill="#FBFCFD"/></svg>')
 (DIST / "404.html").write_text(index)
+(DIST / ".nojekyll").write_text("")
 
 # --- Claude artifact preview (single file, no document skeleton) ---
 (ROOT.parent / "life.html").write_text(
