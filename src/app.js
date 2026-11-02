@@ -248,7 +248,10 @@ function ring(frac,done){const C=113.1,v=Math.max(0,Math.min(1,frac))*C;
 
 function rStart(){
   const h=new Date().getHours();
-  $("#greet").textContent=h<5?"Dobranoc":h<18?"Dzień dobry":"Dobry wieczór";
+  const nm=(items.get("settings")||{}).name||"";
+  $("#greet").textContent=nm?`Cześć, ${nm}`:"Cześć!";
+  $("#nameAsk").hidden=!!nm;
+  if(document.activeElement!==$("#nameIn"))$("#nameIn").value=nm;
   $("#hDate").textContent=`${DAYS[wd(today)]}, ${today.getDate()} ${MON[today.getMonth()]} · Tydzień ${isoWeek(today)}`;
   const tT=tasks().filter(t=>t.date===T),open=tT.filter(t=>!t.done).length,evT=events().filter(e=>e.date===T);
   const m=ym(today),{inc,out}=monthTotals(m),b=budget();
@@ -498,6 +501,9 @@ $("#importFile").addEventListener("change",async e=>{const f=e.target.files[0];i
     await putMany(entries);msg.textContent=`Wczytano ${entries.length} wpisów z pliku ${f.name}.`}
   catch(_){msg.textContent="Ten plik nie jest kopią Life. Wybierz plik .json pobrany przyciskiem „Pobierz kopię”."}
   e.target.value=""});
+function saveName(v){const name=v.trim().replace(/\s+/g," ").slice(0,30);put("settings",{...(items.get("settings")||{kind:"settings"}),kind:"settings",name,ex:false})}
+$("#nameAsk").addEventListener("submit",e=>{e.preventDefault();const v=$("#nameAskIn").value;if(!v.trim()){$("#nameAskIn").focus();return}saveName(v)});
+$("#nameForm").addEventListener("submit",e=>{e.preventDefault();saveName($("#nameIn").value);$("#nameIn").blur()});
 $("#budgetForm").addEventListener("submit",e=>{e.preventDefault();const v=parseAmt($("#budgetIn").value);
   put("settings",{...(items.get("settings")||{kind:"settings"}),budget:v>0?v:0});$("#budgetIn").blur()});
 
@@ -533,7 +539,7 @@ async function loadExamples(){
   for(const[key,name,amount,freq,cat,d,paid]of recEx){const rid=uid("r");
     if(key)for(const w of W)if(w[1].rec===key)w[1].rec=rid;
     W.push([rid,{kind:"rec",name,amount,freq,cat,start:D(d),since:D(Math.min(d,0)),active:true,paid,created:now+n++,ex:true}])}
-  W.push(["settings",{kind:"settings",budget:4500,ex:true}]);
+  {const nm=(items.get("settings")||{}).name;W.push(["settings",{kind:"settings",budget:4500,ex:true,...(nm?{name:nm,ex:false}:{})}])}
   // car: Audi Q3 2012 with sample service items and fuel history
   W.push(["car",{kind:"car",make:"Audi",model:"Q3",year:2012,engine:"2.0 TDI 140 KM quattro",plate:"",mileage:186400,photo:null,ex:true}]);
   [["Wymienić żarówkę","lampa-pp",D(7),null],["Wymiana opon na zimowe","",D(29),null],["Olej i filtry","silnik",null,188200],["Pióra wycieraczek","szyba",null,null],["Rozrząd z pompą wody","silnik",null,210000]]

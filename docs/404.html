@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap">
-<link rel="stylesheet" href="app.css?v=14380a22">
+<link rel="stylesheet" href="app.css?v=2e75994f">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -84,6 +84,11 @@
         <p class="acct-msg" id="acctMsg" role="status"></p>
       </div>
       <div class="sub backup-box" style="gap:12px">
+        <form class="form" id="nameForm" autocomplete="on" style="gap:8px">
+          <h2>Twoje imię</h2>
+          <div class="row"><input class="field" id="nameIn" autocomplete="given-name" placeholder="Np. Hubert" aria-label="Twoje imię" maxlength="30"><button class="ghost" type="submit">Zapisz</button></div>
+          <span class="muted" style="font-size:.85rem">Pojawi się w powitaniu na stronie głównej.</span>
+        </form>
         <h2>Kopia zapasowa</h2>
         <p class="muted">Pobierz wszystkie wpisy do pliku albo wczytaj je z wcześniej pobranej kopii.</p>
         <div class="row">
@@ -99,8 +104,13 @@
   <section data-view="start">
     <header class="hero">
       <div class="label" id="hDate"></div>
-      <h1 id="greet">Dzień dobry</h1>
+      <h1 id="greet">Cześć!</h1>
       <p class="lede" id="hSummary"></p>
+      <form class="name-ask" id="nameAsk" autocomplete="on" hidden>
+        <label for="nameAskIn">Jak masz na imię?</label>
+        <input class="field" id="nameAskIn" autocomplete="given-name" placeholder="Twoje imię" maxlength="30">
+        <button class="btn" type="submit">Zapisz</button>
+      </form>
     </header>
     <div class="empty" id="homeEmpty" hidden>
       <p>Life jest jeszcze puste. Dodawaj wpisy w poszczególnych zakładkach albo wczytaj przykładowe dane, żeby zobaczyć, jak wszystko działa. Przykłady usuniesz jednym kliknięciem.</p>
@@ -443,7 +453,7 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
-<script src="app.js?v=14380a22"></script>
+<script src="app.js?v=2e75994f"></script>
 <script>
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>

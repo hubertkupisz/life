@@ -346,3 +346,6 @@ input[type=checkbox]:checked::after{content:"";width:11px;height:6px;border:2px 
 .car-add[open] summary{margin-bottom:12px}
 .car-fuel{gap:16px}
 @media (max-width:560px){.car-mark{width:22px;height:22px;margin:-11px 0 0 -11px;font-size:12px;border-width:1.5px}.car-name{font-size:1.45rem}}
+.name-ask{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:6px;max-width:520px}
+.name-ask label{font-weight:600;flex:1 0 100%}
+.name-ask .field{flex:1 1 200px;max-width:280px;background:var(--sheet);box-shadow:var(--shadow)}

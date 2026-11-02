@@ -62,6 +62,11 @@
         <p class="acct-msg" id="acctMsg" role="status"></p>
       </div>
       <div class="sub backup-box" style="gap:12px">
+        <form class="form" id="nameForm" autocomplete="on" style="gap:8px">
+          <h2>Twoje imię</h2>
+          <div class="row"><input class="field" id="nameIn" autocomplete="given-name" placeholder="Np. Hubert" aria-label="Twoje imię" maxlength="30"><button class="ghost" type="submit">Zapisz</button></div>
+          <span class="muted" style="font-size:.85rem">Pojawi się w powitaniu na stronie głównej.</span>
+        </form>
         <h2>Kopia zapasowa</h2>
         <p class="muted">Pobierz wszystkie wpisy do pliku albo wczytaj je z wcześniej pobranej kopii.</p>
         <div class="row">
@@ -77,8 +82,13 @@
   <section data-view="start">
     <header class="hero">
       <div class="label" id="hDate"></div>
-      <h1 id="greet">Dzień dobry</h1>
+      <h1 id="greet">Cześć!</h1>
       <p class="lede" id="hSummary"></p>
+      <form class="name-ask" id="nameAsk" autocomplete="on" hidden>
+        <label for="nameAskIn">Jak masz na imię?</label>
+        <input class="field" id="nameAskIn" autocomplete="given-name" placeholder="Twoje imię" maxlength="30">
+        <button class="btn" type="submit">Zapisz</button>
+      </form>
     </header>
     <div class="empty" id="homeEmpty" hidden>
       <p>Life jest jeszcze puste. Dodawaj wpisy w poszczególnych zakładkach albo wczytaj przykładowe dane, żeby zobaczyć, jak wszystko działa. Przykłady usuniesz jednym kliknięciem.</p>
