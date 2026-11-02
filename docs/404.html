@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
-<link rel="stylesheet" href="app.css?v=88153d08">
+<link rel="stylesheet" href="app.css?v=9f817d11">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -33,17 +33,50 @@
     <a class="logo" href="#start">Lif<i>e</i></a>
     <span class="topr">
       <span id="status"><i class="dot" id="statusDot"></i><span id="statusTxt">Zapis w tej przeglądarce</span></span>
-      <button class="ghost" id="backupBtn" data-act="backup" aria-expanded="false" hidden>Kopia zapasowa</button>
+      <button class="ghost" id="acctBtn" data-act="acct" aria-expanded="false" aria-controls="acctPanel" hidden>Konto</button>
     </span>
   </div>
-  <div class="panel backup" id="backupPanel" hidden>
-    <h2>Kopia zapasowa</h2>
-    <p class="muted">Dane Life są zapisane w tej przeglądarce na tym urządzeniu. Pobierz kopię, żeby ich nie stracić albo przenieść je na inne urządzenie.</p>
-    <div class="row">
-      <button class="btn" data-act="export">Pobierz kopię (.json)</button>
-      <label class="ghost filebtn">Wczytaj kopię z pliku<input type="file" id="importFile" accept="application/json,.json"></label>
+  <div class="panel acct" id="acctPanel" hidden>
+    <div class="acct-grid">
+      <div class="sub" style="gap:12px">
+        <div id="acctOut" class="sub" style="gap:12px">
+          <h2>Synchronizacja</h2>
+          <p class="muted">Zaloguj się, żeby mieć te same dane na telefonie i komputerze. Wpisy dodane przed zalogowaniem przeniosę na Twoje konto.</p>
+          <div class="seg" role="group" aria-label="Logowanie lub nowe konto" style="justify-self:start">
+            <button type="button" data-act="authMode" data-m="in" aria-pressed="true">Logowanie</button>
+            <button type="button" data-act="authMode" data-m="up" aria-pressed="false">Nowe konto</button>
+          </div>
+          <form class="form" id="authForm" autocomplete="on">
+            <input class="field" type="email" id="authEmail" placeholder="Adres e-mail" aria-label="Adres e-mail" autocomplete="email" required>
+            <input class="field" type="password" id="authPass" placeholder="Hasło" aria-label="Hasło" autocomplete="current-password" minlength="8" required>
+            <div class="row" style="align-items:center">
+              <button class="btn" type="submit" id="authSubmit">Zaloguj się</button>
+              <button class="linkbtn" type="button" data-act="forgot" id="forgotBtn">Nie pamiętasz hasła?</button>
+            </div>
+          </form>
+        </div>
+        <div id="acctIn" class="sub" style="gap:12px" hidden>
+          <h2>Twoje konto</h2>
+          <p>Zalogowano jako <b id="acctEmail"></b>. Dane synchronizują się automatycznie między urządzeniami.</p>
+          <div class="row"><button class="ghost" data-act="signOut">Wyloguj się</button></div>
+        </div>
+        <form class="form" id="newPassForm" autocomplete="on" hidden>
+          <h2>Ustaw nowe hasło</h2>
+          <input class="field" type="password" id="newPass" placeholder="Nowe hasło (min. 8 znaków)" aria-label="Nowe hasło" autocomplete="new-password" minlength="8" required>
+          <div class="row"><button class="btn" type="submit">Zapisz hasło</button></div>
+        </form>
+        <p class="acct-msg" id="acctMsg" role="status"></p>
+      </div>
+      <div class="sub backup-box" style="gap:12px">
+        <h2>Kopia zapasowa</h2>
+        <p class="muted">Pobierz wszystkie wpisy do pliku albo wczytaj je z wcześniej pobranej kopii.</p>
+        <div class="row">
+          <button class="ghost" data-act="export">Pobierz kopię (.json)</button>
+          <label class="ghost filebtn">Wczytaj kopię z pliku<input type="file" id="importFile" accept="application/json,.json"></label>
+        </div>
+        <span class="muted" id="backupMsg" style="font-size:.9rem"></span>
+      </div>
     </div>
-    <span class="muted" id="backupMsg" style="font-size:.9rem"></span>
   </div>
 
   <!-- ========== START ========== -->
@@ -273,7 +306,8 @@
   <a href="#notatki" data-nav="notatki"><svg class="i"><use href="#i-notatki"/></svg><span class="tip">Notatki</span></a>
 </nav>
 
-<script src="app.js?v=88153d08"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="app.js?v=9f817d11"></script>
 <script>
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>

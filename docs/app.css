@@ -59,7 +59,7 @@ a{color:var(--cobalt)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .seg a{border-radius:6px;padding:5px 12px;color:var(--muted);text-decoration:none;white-space:nowrap}
 .seg a[aria-current="page"]{background:var(--ink);color:var(--paper)}
-.sub{display:grid;gap:20px;min-width:0}
+.sub{display:grid;gap:20px;min-width:0;align-content:start}
 
 /* surfaces */
 .panel{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:18px clamp(14px,2.4vw,22px);display:grid;gap:14px;align-content:start;min-width:0}
@@ -207,7 +207,15 @@ svg.i{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke
 
 /* top bar extras + backup */
 .topr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-.backup{margin-bottom:18px}
+.acct{margin-bottom:18px}
+.acct-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+.backup-box{border-left:1px solid var(--rule);padding-left:28px}
+@media (max-width:760px){.acct-grid{grid-template-columns:minmax(0,1fr)}.backup-box{border-left:0;padding-left:0;border-top:1px solid var(--rule);padding-top:18px}}
+.acct-msg{font-size:.92rem;margin:0}
+.acct-msg.err{color:var(--red)}.acct-msg.ok{color:var(--green)}
+.acct form .field{max-width:420px}
+.linkbtn{background:none;border:0;color:var(--cobalt);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px;font-size:.9rem}
+.btn[disabled]{opacity:.6;cursor:wait}
 .filebtn{position:relative;overflow:hidden;cursor:pointer;display:inline-flex;align-items:center}
 .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 

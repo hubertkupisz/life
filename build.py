@@ -43,6 +43,7 @@ index = f"""<!doctype html>
 </head>
 <body>
 {body}
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script src="app.js?v={ver}"></script>
 <script>
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{{}});
@@ -75,8 +76,8 @@ self.addEventListener("activate",e=>{{e.waitUntil(caches.keys().then(ks=>Promise
 self.addEventListener("fetch",e=>{{
   const r=e.request;if(r.method!=="GET")return;
   const u=new URL(r.url);
-  const font=u.host==="fonts.googleapis.com"||u.host==="fonts.gstatic.com";
-  if(u.origin!==location.origin&&!font)return;
+  const ext=u.host==="fonts.googleapis.com"||u.host==="fonts.gstatic.com"||(u.host==="cdn.jsdelivr.net"&&u.pathname.startsWith("/npm/@supabase/supabase-js@"));
+  if(u.origin!==location.origin&&!ext)return;
   e.respondWith(caches.open(CACHE).then(async c=>{{
     const hit=await c.match(r,{{ignoreSearch:r.mode==="navigate"}});
     const net=fetch(r).then(res=>{{if(res.ok||res.type==="opaque")c.put(r,res.clone());return res}}).catch(()=>hit);

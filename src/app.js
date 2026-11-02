@@ -29,21 +29,150 @@ const T=iso(today);
 const ui={view:"start",calMonth:new Date(today.getFullYear(),today.getMonth(),1),calSel:T,tf:"active",
   finMonth:new Date(today.getFullYear(),today.getMonth(),1),txType:"out",finTab:"ov",recEdit:null,habWeek:monday(today),note:null};
 
-/* ---------- storage: private db on the account, browser storage as fallback ---------- */
+/* ---------- storage ----------
+   mode "local": this browser only · "db": Claude artifact store · "cloud": Supabase account (local cache + offline queue) */
+const IN_CLAUDE=!!(window.claude&&typeof window.claude.use==="function");
 let items=new Map(),mode="local",col=null;
-const LS="life.v1";
-function loadLocal(){try{const r=localStorage.getItem(LS);if(r)items=new Map(Object.entries(JSON.parse(r)))}catch(e){}}
-function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(Object.fromEntries(items)))}catch(e){}}
+const LS="life.v1",LS_PEND="life.pending",LS_OWNER="life.owner";
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+function loadLocal(){try{const r=lsGet(LS);if(r)items=new Map(Object.entries(JSON.parse(r)))}catch(e){}}
+function saveLocal(){if(mode!=="db")lsSet(LS,JSON.stringify(Object.fromEntries(items)))}
 const queues=new Map();
 function enqueue(id,fn){const p=(queues.get(id)||Promise.resolve()).then(fn).catch(()=>setStatus("error"));queues.set(id,p);return p}
-function put(id,obj,quiet){items.set(id,obj);if(!quiet)render();if(mode==="db")return enqueue(id,()=>col.doc(id).set(obj));saveLocal();return Promise.resolve()}
+function remoteSet(id,obj){if(mode==="db")return enqueue(id,()=>col.doc(id).set(obj));if(mode==="cloud")queueCloud(id,obj);return Promise.resolve()}
+function remoteDel(id){if(mode==="db")return enqueue(id,()=>col.doc(id).delete());if(mode==="cloud")queueCloud(id,null);return Promise.resolve()}
+function put(id,obj,quiet){items.set(id,obj);if(!quiet)render();saveLocal();return remoteSet(id,obj)}
+async function putMany(entries){for(const[id,o]of entries)items.set(id,o);saveLocal();render();
+  if(mode==="db"){for(const[id,o]of entries)await remoteSet(id,o)}else for(const[id,o]of entries)remoteSet(id,o)}
 function del(id){const it=items.get(id);
   if(it&&it.kind==="tx"&&it.rec){const r=items.get(it.rec);if(r&&r.paid){const p={...r.paid};for(const k in p)if(p[k]===id)delete p[k];put(it.rec,{...r,paid:p},true)}}
-  items.delete(id);render();if(mode==="db")return enqueue(id,()=>col.doc(id).delete());saveLocal();return Promise.resolve()}
+  items.delete(id);render();saveLocal();return remoteDel(id)}
 function setStatus(s){
-  const t={local:["Zapis w tej przeglądarce",""],db:["Zapisano na koncie","ok"],slow:["Łączę się z zapisem…","bad"],error:["Nie udało się zapisać. Odśwież stronę.","bad"]}[s];
+  const t={local:["Zapis w tej przeglądarce",""],db:["Zapisano na koncie","ok"],slow:["Łączę się z zapisem…","bad"],error:["Nie udało się zapisać. Odśwież stronę.","bad"],
+    cloud:["Zsynchronizowano","ok"],sync:["Synchronizuję…",""],offline:["Offline · zmiany wyślę po połączeniu","bad"],
+    cloudErr:["Nie udało się zsynchronizować · ponowię za chwilę","bad"],relogin:["Zaloguj się, żeby zsynchronizować","bad"]}[s];
   $("#statusTxt").textContent=t[0];$("#statusDot").className="dot "+t[1];
 }
+
+/* ---------- cloud sync (Supabase) ---------- */
+const SB_URL="https://nmlxqbozlriigqdexiao.supabase.co",SB_KEY="sb_publishable_vCTPKGEJy7_94FRpefy-9g_GMJSmG1u";
+const SITE=()=>location.origin+location.pathname;
+let sb=null,sbUser=null,chan=null,pending=new Map(),flushing=false,flushAgain=false,authMode="in";
+function loadPending(){try{pending=new Map(JSON.parse(lsGet(LS_PEND)||"[]"))}catch(e){pending=new Map()}}
+function savePending(){lsSet(LS_PEND,pending.size?JSON.stringify([...pending]):null)}
+function queueCloud(id,obj){pending.set(id,obj);savePending();flush()}
+async function flush(){
+  if(mode!=="cloud")return;
+  if(!sbUser){setStatus(navigator.onLine===false||!sb?"offline":"relogin");return}
+  if(flushing){flushAgain=true;return}
+  flushing=true;if(pending.size)setStatus("sync");
+  try{
+    while(pending.size){
+      const batch=[...pending].slice(0,200),ups=batch.filter(([,v])=>v!==null),dels=batch.filter(([,v])=>v===null).map(([k])=>k);
+      if(ups.length){const{error}=await sb.from("items").upsert(ups.map(([id,data])=>({user_id:sbUser.id,id,data})),{onConflict:"user_id,id"});if(error)throw error}
+      if(dels.length){const{error}=await sb.from("items").delete().in("id",dels);if(error)throw error}
+      for(const[k,v]of batch)if(pending.get(k)===v)pending.delete(k);
+      savePending();
+    }
+    setStatus("cloud");
+  }catch(e){setStatus(navigator.onLine===false?"offline":"cloudErr")}
+  finally{flushing=false;if(flushAgain){flushAgain=false;if(pending.size)setTimeout(flush,0)}}
+}
+async function pull(first){
+  const{data,error}=await sb.from("items").select("id,data");
+  if(error){setStatus(navigator.onLine===false?"offline":"cloudErr");return false}
+  const remote=new Map(data.map(r=>[r.id,r.data]));
+  if(first){const owner=lsGet(LS_OWNER);
+    if(!owner){for(const[id,v]of items)if(!remote.has(id)&&!pending.has(id))pending.set(id,v)}   // entries made before signing in move to the account
+    else if(owner!==sbUser.id)pending.clear();                                                     // cache of another account: never upload it
+    lsSet(LS_OWNER,sbUser.id);savePending()}
+  for(const[id,v]of pending)v===null?remote.delete(id):remote.set(id,v);
+  items=remote;saveLocal();render();return true;
+}
+async function startCloud(){
+  mode="cloud";loadPending();renderAcct();setStatus("sync");
+  if(await pull(true))await flush();
+  if(chan)sb.removeChannel(chan);
+  chan=sb.channel("life-"+sbUser.id).on("postgres_changes",{event:"*",schema:"public",table:"items"},p=>{
+    const row=p.eventType==="DELETE"?p.old:p.new;
+    if(!row||!sbUser||row.user_id!==sbUser.id||pending.has(row.id))return;
+    if(p.eventType==="DELETE")items.delete(row.id);else items.set(row.id,p.new.data);
+    saveLocal();render();
+  }).subscribe();
+}
+function endCloud(){
+  if(chan){sb.removeChannel(chan);chan=null}
+  mode="local";items=new Map();pending=new Map();
+  lsSet(LS,null);lsSet(LS_PEND,null);lsSet(LS_OWNER,null);
+  setStatus("local");render();renderAcct();
+}
+function acctMsg(t,kind){const m=$("#acctMsg");m.textContent=t||"";m.className="acct-msg"+(kind?" "+kind:"")}
+function openAcct(){$("#acctPanel").hidden=false;$("#acctBtn").setAttribute("aria-expanded","true")}
+function authErr(e){const m=(e&&e.message)||"";
+  if(/invalid login credentials/i.test(m))return"Nieprawidłowy e-mail lub hasło.";
+  if(/email not confirmed/i.test(m))return"Najpierw potwierdź adres e-mail linkiem z wiadomości, którą wysłaliśmy.";
+  if(/password should be|weak password/i.test(m))return"Hasło jest za słabe. Użyj co najmniej 8 znaków.";
+  if(/rate limit|too many|security purposes/i.test(m))return"Za dużo prób w krótkim czasie. Spróbuj ponownie za kilka minut.";
+  if(/already registered/i.test(m))return"To konto już istnieje. Zaloguj się.";
+  if(/fetch|network/i.test(m))return"Brak połączenia z internetem. Spróbuj ponownie, gdy będziesz online.";
+  return"Nie udało się: "+m;}
+function renderAcct(){
+  $("#acctBtn").hidden=IN_CLAUDE;
+  $("#acctBtn").textContent=sbUser?"Konto":"Zaloguj się";
+  $("#acctOut").hidden=!!sbUser;$("#acctIn").hidden=!sbUser;
+  if(sbUser)$("#acctEmail").textContent=sbUser.email||"";
+  $$('[data-act="authMode"]').forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===authMode));
+  $("#authSubmit").textContent=authMode==="in"?"Zaloguj się":"Załóż konto";
+  $("#authPass").setAttribute("autocomplete",authMode==="in"?"current-password":"new-password");
+  $("#authPass").placeholder=authMode==="in"?"Hasło":"Hasło (min. 8 znaków)";
+  $("#forgotBtn").hidden=authMode!=="in";
+}
+const urlQ=new URLSearchParams(location.search),urlCode=urlQ.get("code"),urlErr=urlQ.get("error_description");
+function onAuth(ev,session){
+  const u=session&&session.user||null;
+  if(ev==="PASSWORD_RECOVERY"){openAcct();$("#newPassForm").hidden=false;acctMsg("Wpisz nowe hasło do konta.");}
+  if(u&&(!sbUser||u.id!==sbUser.id)){sbUser=u;startCloud()}
+  else if(u){sbUser=u}
+  else if(!u&&sbUser){sbUser=null;endCloud()}
+  else if(!u&&ev==="INITIAL_SESSION"&&mode==="cloud")setStatus("relogin");
+  if(ev==="INITIAL_SESSION"&&(urlCode||urlErr)){
+    if(!u){openAcct();acctMsg(urlErr?"Link z wiadomości wygasł albo został już użyty. Zaloguj się hasłem lub wyślij nowy link.":"Adres e-mail potwierdzony. Zaloguj się teraz hasłem.",urlErr?"err":"ok")}
+    else if(ev!=="PASSWORD_RECOVERY"&&$("#newPassForm").hidden){openAcct();acctMsg("Konto potwierdzone. Zalogowano i synchronizuję dane.","ok")}
+    history.replaceState(null,"",SITE()+location.hash);
+  }
+  renderAcct();
+}
+function initCloud(){
+  if(IN_CLAUDE)return;
+  renderAcct();
+  if(lsGet(LS_OWNER)){mode="cloud";loadPending();setStatus(navigator.onLine===false?"offline":"sync")}
+  if(!window.supabase){if(mode==="cloud")setStatus("offline");return}
+  sb=supabase.createClient(SB_URL,SB_KEY,{auth:{flowType:"pkce",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"life-auth"}});
+  sb.auth.onAuthStateChange((ev,session)=>setTimeout(()=>onAuth(ev,session),0));
+  window.addEventListener("online",()=>{if(mode==="cloud"&&sbUser)pull(false).then(flush)});
+  window.addEventListener("offline",()=>{if(mode==="cloud")setStatus("offline")});
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&mode==="cloud"&&sbUser)pull(false).then(flush)});
+  setInterval(()=>{if(mode==="cloud"&&sbUser&&pending.size)flush()},30000);
+}
+$("#authForm").addEventListener("submit",async e=>{e.preventDefault();
+  if(!sb){acctMsg("Logowanie wymaga połączenia z internetem.","err");return}
+  const email=$("#authEmail").value.trim(),password=$("#authPass").value,btn=$("#authSubmit");
+  if(password.length<8){acctMsg("Hasło musi mieć co najmniej 8 znaków.","err");$("#authPass").focus();return}
+  btn.disabled=true;acctMsg(authMode==="in"?"Loguję…":"Zakładam konto…");
+  try{
+    if(authMode==="in"){const{error}=await sb.auth.signInWithPassword({email,password});
+      if(error)acctMsg(authErr(error),"err");else{$("#authPass").value="";acctMsg("Zalogowano. Synchronizuję dane…","ok")}}
+    else{const{data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:SITE()}});
+      if(error)acctMsg(authErr(error),"err");
+      else if(data.session){$("#authPass").value="";acctMsg("Konto założone. Synchronizuję dane…","ok")}
+      else{$("#authPass").value="";authMode="in";renderAcct();acctMsg(`Wysłaliśmy link potwierdzający na ${email}. Kliknij go (może być w dowolnej przeglądarce), a potem zaloguj się tutaj hasłem. Sprawdź też folder spam.`,"ok")}}
+  }finally{btn.disabled=false}
+});
+$("#newPassForm").addEventListener("submit",async e=>{e.preventDefault();const pw=$("#newPass").value;
+  if(pw.length<8){acctMsg("Hasło musi mieć co najmniej 8 znaków.","err");return}
+  const{error}=await sb.auth.updateUser({password:pw});
+  if(error)acctMsg(authErr(error),"err");else{$("#newPass").value="";$("#newPassForm").hidden=true;acctMsg("Hasło zmienione.","ok")}});
 
 /* ---------- selectors ---------- */
 const all=()=>[...items].map(([id,v])=>({id,...v}));
@@ -286,7 +415,16 @@ document.addEventListener("click",e=>{
       $("#recFreq").value=it.freq;render();$("#recCat").value=it.cat;$("#recStart").value=nextDue(it)||it.start;$("#recName").focus()},
     recCancel:resetRecForm,
     recToggle:()=>{if(it)put(id,{...it,active:it.active===false})},
-    backup:()=>{const p=$("#backupPanel");p.hidden=!p.hidden;$("#backupBtn").setAttribute("aria-expanded",!p.hidden);$("#backupMsg").textContent=""},
+    acct:()=>{const p=$("#acctPanel");p.hidden=!p.hidden;$("#acctBtn").setAttribute("aria-expanded",!p.hidden);$("#backupMsg").textContent="";if(!p.hidden&&!sbUser)$("#authEmail").focus()},
+    authMode:()=>{authMode=b.dataset.m;acctMsg("");renderAcct()},
+    forgot:async()=>{const email=$("#authEmail").value.trim();
+      if(!email){acctMsg("Wpisz adres e-mail, a potem kliknij „Nie pamiętasz hasła?”.","err");$("#authEmail").focus();return}
+      if(!sb){acctMsg("Ta funkcja wymaga połączenia z internetem.","err");return}
+      const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:SITE()});
+      acctMsg(error?authErr(error):`Wysłaliśmy link do zmiany hasła na ${email}. Otwórz go na tym urządzeniu, w tej samej przeglądarce.`,error?"err":"ok")},
+    signOut:async()=>{if(pending.size&&sbUser)await flush();
+      if(pending.size){acctMsg("Część zmian nie została jeszcze wysłana. Połącz się z internetem i spróbuj ponownie.","err");return}
+      await sb.auth.signOut();acctMsg("Wylogowano. Dane z konta zostały usunięte z tego urządzenia.","ok")},
     export:()=>{try{const blob=new Blob([JSON.stringify({app:"life",version:1,exported:new Date().toISOString(),items:Object.fromEntries(items)},null,1)],{type:"application/json"});
       const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`life-kopia-${T}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
       $("#backupMsg").textContent=`Pobrano kopię z ${items.size} wpisami.`}catch(e){$("#backupMsg").textContent="Nie udało się utworzyć pliku kopii."}},
@@ -321,9 +459,7 @@ $("#recForm").addEventListener("submit",e=>{e.preventDefault();const err=$("#rec
 $("#importFile").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;const msg=$("#backupMsg");
   try{const data=JSON.parse(await f.text());if(!data||data.app!=="life"||typeof data.items!=="object")throw 0;
     const entries=Object.entries(data.items).filter(([k,v])=>v&&typeof v==="object"&&typeof v.kind==="string");
-    for(const[k,v]of entries)items.set(k,v);
-    if(mode==="db"){for(const[k,v]of entries)await enqueue(k,()=>col.doc(k).set(v))}else saveLocal();
-    render();msg.textContent=`Wczytano ${entries.length} wpisów z pliku ${f.name}.`}
+    await putMany(entries);msg.textContent=`Wczytano ${entries.length} wpisów z pliku ${f.name}.`}
   catch(_){msg.textContent="Ten plik nie jest kopią Life. Wybierz plik .json pobrany przyciskiem „Pobierz kopię”."}
   e.target.value=""});
 $("#budgetForm").addEventListener("submit",e=>{e.preventDefault();const v=parseAmt($("#budgetIn").value);
@@ -362,14 +498,11 @@ async function loadExamples(){
     if(key)for(const w of W)if(w[1].rec===key)w[1].rec=rid;
     W.push([rid,{kind:"rec",name,amount,freq,cat,start:D(d),since:D(Math.min(d,0)),active:true,paid,created:now+n++,ex:true}])}
   W.push(["settings",{kind:"settings",budget:4500,ex:true}]);
-  for(const[id,o]of W)items.set(id,o);
-  render();
-  if(mode==="db"){for(const[id,o]of W)await enqueue(id,()=>col.doc(id).set(o))}else saveLocal();
+  await putMany(W);
 }
 
 /* ---------- boot ---------- */
-const IN_CLAUDE=!!(window.claude&&typeof window.claude.use==="function");
-loadLocal();setStatus("local");$("#backupBtn").hidden=IN_CLAUDE;route();
+loadLocal();setStatus("local");initCloud();route();
 (async()=>{
   if(!IN_CLAUDE)return;
   try{
