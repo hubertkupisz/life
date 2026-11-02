@@ -119,7 +119,9 @@ function authErr(e){const m=(e&&e.message)||"";
   return"Nie udało się: "+m;}
 function renderAcct(){
   $("#acctBtn").hidden=IN_CLAUDE;
-  $("#acctBtn").textContent=sbUser?"Konto":"Zaloguj się";
+  const ab=$("#acctBtn"),ini=sbUser&&(sbUser.email||"?").trim()[0].toUpperCase();
+  ab.textContent=sbUser?ini:"Zaloguj się";ab.classList.toggle("in",!!sbUser);
+  ab.setAttribute("aria-label",sbUser?`Konto: ${sbUser.email||""}`:"Zaloguj się");ab.title=sbUser?`Konto: ${sbUser.email||""}`:"";
   $("#acctOut").hidden=!!sbUser;$("#acctIn").hidden=!sbUser;
   if(sbUser)$("#acctEmail").textContent=sbUser.email||"";
   $$('[data-act="authMode"]').forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===authMode));
@@ -217,58 +219,82 @@ window.addEventListener("hashchange",route);
 /* ---------- render ---------- */
 function render(){({start:rStart,kalendarz:rCal,zadania:rTasks,finanse:rFin,nawyki:rHab,notatki:rNotes})[ui.view]()}
 
+const PRIO={A:"!!!",B:"!!",C:""},PRION={A:"wysoki",B:"średni",C:"niski"};
 function taskItem(t,showDate){
   const late=t.date&&t.date<T&&!t.done;
   return `<li class="item${t.done?" done":""}">
-    <input type="checkbox" id="c-${t.id}" data-act="toggle" data-id="${t.id}"${t.done?" checked":""}>
+    <input type="checkbox" id="c-${t.id}" data-act="toggle" data-id="${t.id}"${t.done?" checked":""} aria-label="${esc(t.title)}">
     <label class="t" for="c-${t.id}">${esc(t.title)}</label>
-    <span class="meta">${showDate&&t.date?`<span class="when${late?" late":""}">${dayLabel(t.date)}</span>`:""}<span class="prio p${t.prio}" title="Priorytet ${t.prio}">${t.prio}</span>${showDate==="full"?`<button class="icon" data-act="del" data-id="${t.id}" aria-label="Usuń zadanie" title="Usuń">×</button>`:""}</span></li>`;
+    <span class="meta">${showDate&&t.date?`<span class="when${late?" late":""}">${dayLabel(t.date)}</span>`:""}<span class="prio p${t.prio}" title="Priorytet ${PRION[t.prio]}">${PRIO[t.prio]}</span>${showDate==="full"?`<button class="icon" data-act="del" data-id="${t.id}" aria-label="Usuń zadanie" title="Usuń">×</button>`:""}</span></li>`;
 }
-function miniMonth(base){
-  const first=new Date(base.getFullYear(),base.getMonth(),1),start=monday(first),evd=new Set(events().map(e=>e.date));
-  let h=SH.map(s=>`<span class="h">${s}</span>`).join("");
-  const last=new Date(base.getFullYear(),base.getMonth()+1,0),cells=Math.ceil((wd(first)+last.getDate())/7)*7;
-  for(let i=0;i<cells;i++){const d=addDays(start,i),k=iso(d);
-    h+=`<span class="d${d.getMonth()!==base.getMonth()?" out":""}${k===T?" today":""}${evd.has(k)?" has":""}">${d.getDate()}</span>`}
-  return `<div class="mini">${h}</div>`;
+/* spending per day for the last 7 days, recurring payments left out */
+function spend7(){
+  const days=[];for(let i=6;i>=0;i--){const d=addDays(today,-i);days.push({k:iso(d),d,v:0})}
+  for(const t of txs())if(t.type==="out"&&!t.rec){const x=days.find(z=>z.k===t.date);if(x)x.v+=t.amount}
+  return days;
 }
+function chart7(H,wide){
+  const days=spend7(),max=Math.max(0,...days.map(d=>d.v)),top=days.reduce((a,b)=>b.v>a.v?b:a,days[0]);
+  const desc=max?`Wydatki z ostatnich 7 dni bez płatności cyklicznych. Najwięcej ${money0(max)} (${DAYS[wd(top.d)].toLowerCase()}), dziś ${money0(days[6].v)}.`:"Brak wydatków w ostatnich 7 dniach.";
+  const bars=days.map(d=>`<span class="${d.k===T?"now":""}" style="height:${max&&d.v?Math.max(4,Math.round(d.v/max*H)):3}px" title="${DAYS[wd(d.d)]}: ${money(d.v)}"></span>`).join("");
+  const labels=days.map(d=>`<span class="${d.k===T?"now":""}">${SH[wd(d.d)]}</span>`).join("");
+  return `<figure class="c7${wide?" wide":""}" role="img" aria-label="${desc}"><div class="c7h"><span class="label">Ostatnie 7 dni</span><span class="c7m">${max?"maks. "+money0(max):"brak wydatków"}</span></div>
+    <div class="c7b" style="height:${H+2}px" aria-hidden="true">${bars}</div><div class="c7l" aria-hidden="true">${labels}</div></figure>`;
+}
+function ring(frac,done){const C=113.1,v=Math.max(0,Math.min(1,frac))*C;
+  return `<svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--ring-bg)" stroke-width="5"/>${v>0?`<circle cx="22" cy="22" r="18" fill="none" stroke="var(--purple-f)" stroke-width="5" stroke-dasharray="${v.toFixed(1)} ${C}" stroke-linecap="round" transform="rotate(-90 22 22)"/>`:""}${done?`<path d="M15 22.5l4.5 4.5L29 17.5" fill="none" stroke="var(--purple-f)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`:""}</svg>`}
 
 function rStart(){
   const h=new Date().getHours();
   $("#greet").textContent=h<5?"Dobranoc":h<18?"Dzień dobry":"Dobry wieczór";
-  $("#hDate").textContent=`${DAYS[wd(today)]}, ${today.getDate()} ${MON[today.getMonth()]} · tydzień ${isoWeek(today)}`;
-  const tT=tasks().filter(t=>t.date===T),open=tT.filter(t=>!t.done).length,evT=events().filter(e=>e.date===T).length;
-  const m=ym(today),{out}=monthTotals(m),b=budget();
-  $("#hSummary").textContent=items.size?`Dziś masz ${open} ${plural(open,"zadanie","zadania","zadań")} do zrobienia i ${evT} ${plural(evT,"wydarzenie","wydarzenia","wydarzeń")}. W ${MONL[today.getMonth()]} wydano ${money0(out)}${b?` z ${money0(b)} budżetu`:""}.`:"Twój plan dnia, pieniądze i nawyki w jednym miejscu.";
+  $("#hDate").textContent=`${DAYS[wd(today)]}, ${today.getDate()} ${MON[today.getMonth()]} · Tydzień ${isoWeek(today)}`;
+  const tT=tasks().filter(t=>t.date===T),open=tT.filter(t=>!t.done).length,evT=events().filter(e=>e.date===T);
+  const m=ym(today),{inc,out}=monthTotals(m),b=budget();
+  const bits=[];
+  bits.push(open?`${open} ${plural(open,"zadanie","zadania","zadań")} na dziś`:"Wszystkie dzisiejsze zadania zrobione");
+  if(evT.length)bits.push(evT[0].time?`${evT[0].title} o ${evT[0].time}`:evT[0].title);
+  if(b)bits.push(`wydano ${Math.round(out/b*100)}% budżetu`);
+  $("#hSummary").textContent=items.size?bits.join(", ").replace(/^./,c=>c.toUpperCase())+".":"Twój plan dnia, pieniądze i nawyki w jednym miejscu.";
   $("#homeEmpty").hidden=items.size>0;
   $("#exTools").hidden=!all().some(x=>x.ex);
 
-  // calendar widget
+  // calendar
+  $("#wDay").textContent=DAYS[wd(today)];
   const up=events().filter(e=>e.date>=T).slice(0,3);
-  $("#wCal").innerHTML=`<div style="display:grid;gap:12px">${miniMonth(today)}
-    <div style="display:grid;gap:6px"><span class="label">Najbliższe</span>${up.length?up.map(e=>`<div class="ev"><span class="k">${dayLabel(e.date)}${e.time?" "+e.time:""}</span><span><i class="cdot c-${e.cat}"></i>${esc(e.title)}</span></div>`).join(""):`<span class="muted">Brak zaplanowanych wydarzeń.</span>`}</div></div>`;
+  $("#wCal").innerHTML=`<div class="wdate num">${today.getDate()}</div>
+    <div style="display:grid;gap:10px">${up.length?up.map(e=>`<div class="ev"><i class="cdot c-${e.cat}"></i><span><b>${esc(e.title)}</b><span class="k">${dayLabel(e.date)}${e.time?", "+e.time:""}</span></span></div>`).join(""):`<span class="muted" style="font-size:.92rem">Brak zaplanowanych wydarzeń.</span>`}</div>`;
 
-  // tasks widget
+  // tasks
   const wt=tasks().filter(t=>t.date&&t.date<=T&&(!t.done||t.date===T)).sort((a,b)=>(a.done-b.done)||tcmp(a,b));
-  const dn=tT.filter(t=>t.done).length;
-  $("#wTasks").innerHTML=wt.length?`<div class="label">${dn} z ${tT.length} na dziś zrobione</div><ul class="list">${wt.slice(0,6).map(t=>taskItem(t,true)).join("")}</ul>${wt.length>6?`<span class="muted">i ${wt.length-6} więcej</span>`:""}`:`<p class="muted">Nic na dziś. Dodaj zadanie w zakładce Zadania.</p>`;
+  const late=tasks().filter(t=>t.date&&t.date<T&&!t.done).length;
+  $("#wTasksCount").textContent=open+late||"";
+  $("#wTasks").innerHTML=wt.length?`<div>${wt.slice(0,5).map(t=>`<label class="wrow${t.done?" done":""}"><input type="checkbox" data-act="toggle" data-id="${t.id}"${t.done?" checked":""}><span class="t">${esc(t.title)}</span><span class="prio p${t.prio}" title="Priorytet ${PRION[t.prio]}">${PRIO[t.prio]}</span></label>`).join("")}</div>
+    ${wt.length>5?`<span class="wfoot">i ${wt.length-5} więcej</span>`:""}${late?`<span class="wfoot late">${late} ${plural(late,"zaległe","zaległe","zaległych")} z poprzednich dni</span>`:""}`
+    :`<p class="muted" style="font-size:.92rem">Nic na dziś. Dodaj zadanie w zakładce Zadania.</p>`;
 
-  // finance widget
-  const{inc}=monthTotals(m),bal=inc-out,pct=b?Math.min(100,out/b*100):0,last=txs().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created).slice(0,3);
-  $("#wFin").innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
-    <div style="display:grid;gap:8px;align-content:start"><span class="label">Saldo · ${MONN[today.getMonth()].toLowerCase()}</span><span class="big num ${bal<0?"neg":""}">${money0(bal)}</span>
-      ${b?`<div class="meter${pct>=100?" over":pct>=80?" warn":""}"><i style="width:${pct}%"></i></div><span class="muted num" style="font-size:.88rem">Wydano ${money0(out)} z ${money0(b)}</span>`:`<span class="muted" style="font-size:.88rem">Wydano ${money0(out)}. Ustaw budżet w zakładce Finanse.</span>`}</div>
-    <div style="display:grid;gap:4px;align-content:start"><span class="label">Ostatnie</span>${last.length?last.map(t=>`<div class="tx" style="grid-template-columns:minmax(0,1fr) auto"><span class="d"><span>${esc(t.note||t.cat)}</span><span class="when">${dayLabel(t.date)} · ${esc(t.cat)}</span></span><span class="amt ${t.type==="in"?"pos":""}">${t.type==="in"?"+":"−"}${money(t.amount)}</span></div>`).join(""):`<span class="muted">Brak transakcji.</span>`}</div></div>`;
+  // finance
+  $("#wFinTitle").textContent=`Finanse · ${MONN[today.getMonth()].toLowerCase()}`;
+  const bal=inc-out,pct=b?out/b*100:0;
+  let fin=`<div class="finrow"><div class="finl">
+      <div style="display:grid;gap:2px"><span class="label">Saldo</span><span class="big num${bal<0?" neg":""}">${money0(bal)}</span></div>
+      <div class="inout"><div><span class="label">Przychody</span><b class="num pos">+${money0(inc)}</b></div><div><span class="label">Wydatki</span><b class="num">−${money0(out)}</b></div></div>
+      ${b?`<div style="display:grid;gap:6px"><div class="meter${pct>=100?" over":pct>=80?" warn":""}"><i style="width:${Math.min(100,pct)}%"></i></div><span class="muted num" style="font-size:.85rem">Wydano ${money0(out)} z ${money0(b)} budżetu</span></div>`:`<span class="muted" style="font-size:.85rem">Ustaw miesięczny budżet w zakładce Finanse.</span>`}
+    </div>${chart7(96)}</div>`;
   const nd=dueList(30),lateN=nd.filter(x=>x.d<T).length;
-  if(nd.length)$("#wFin").innerHTML+=`<a class="wnext" href="#finanse-cykliczne" style="text-decoration:none;color:inherit"><span><span class="label">Najbliższa płatność</span><br>${esc(nd[0].r.name)} · <span class="${nd[0].d<T?"neg":""}">${inDays(nd[0].d)}</span>${lateN>1?` <span class="badge late">${lateN} po terminie</span>`:""}</span><span class="amt">${money(nd[0].r.amount)}</span></a>`;
+  if(nd.length){const x=nd[0];fin+=`<a class="wnext" href="#finanse-cykliczne"><span class="chip" style="background:var(--orange-f);width:30px;height:30px;border-radius:9px"><svg class="i"><use href="#i-repeat"/></svg></span><span><b>${esc(x.r.name)}</b><small class="${x.d<T?"neg":""}">Płatność cykliczna · ${inDays(x.d)}${lateN>1?` · ${lateN} po terminie`:""}</small></span><span class="amt">${money(x.r.amount)}</span></a>`}
+  $("#wFin").innerHTML=fin;
 
-  // habits widget
-  const hs=habits();
-  $("#wHab").innerHTML=hs.length?`<div class="label">Dziś</div><div>${hs.map(x=>{const on=!!(x.checks||{})[T];return`<div class="hrow"><span>${esc(x.name)}</span><button class="hc" data-act="habit" data-id="${x.id}" data-date="${T}" aria-pressed="${on}" aria-label="${esc(x.name)} dziś">${on?"✓":""}</button></div>`}).join("")}</div>`:`<p class="muted">Dodaj pierwszy nawyk.</p>`;
+  // habits
+  const hs=habits(),ws=monday(today),daysSoFar=wd(today)+1;
+  const doneToday=hs.filter(x=>(x.checks||{})[T]).length;
+  $("#wHabTitle").textContent=hs.length?`Nawyki · dziś ${doneToday} z ${hs.length}`:"Nawyki";
+  $("#wHab").innerHTML=hs.length?`<div class="htiles">${hs.map(x=>{const c=x.checks||{},on=!!c[T];let wk=0;for(let i=0;i<daysSoFar;i++)if(c[iso(addDays(ws,i))])wk++;const s=streak(x);
+      return`<button class="htile" data-act="habit" data-id="${x.id}" data-date="${T}" aria-pressed="${on}" aria-label="${esc(x.name)}: ${on?"zrobione dziś":"jeszcze nie dziś"}, ${wk} z ${daysSoFar} dni w tym tygodniu">${ring(wk/daysSoFar,on)}<b>${esc(x.name)}</b><small>${s?`Seria ${s} ${plural(s,"dzień","dni","dni")}`:"Zacznij serię"}</small></button>`}).join("")}</div>`
+    :`<p class="muted" style="font-size:.92rem">Dodaj pierwszy nawyk w zakładce Nawyki.</p>`;
 
-  // notes widget
-  const ns=notes().slice(0,3);
-  $("#wNotes").innerHTML=ns.length?`<div class="ngrid">${ns.map(n=>`<div class="ncard">${n.pinned?`<span class="pin">Przypięta</span>`:""}<b>${esc(n.title||"Bez tytułu")}</b><p>${esc(n.body||"")}</p></div>`).join("")}</div>`:`<p class="muted">Brak notatek.</p>`;
+  // notes
+  const ns=notes().slice(0,2);
+  $("#wNotes").innerHTML=ns.length?`<div class="ngrid">${ns.map(n=>`<div class="ncard">${n.pinned?`<span class="pin">Przypięta</span>`:""}<b>${esc(n.title||"Bez tytułu")}</b><p>${esc(n.body||"")}</p></div>`).join("")}</div>`:`<p class="muted" style="font-size:.92rem">Brak notatek.</p>`;
 }
 
 function rCal(){
@@ -341,6 +367,7 @@ function rFinOv(){
   const mr=monthRec(m);
   if(mr.total)$("#finBudget").innerHTML+=`<span class="muted num" style="font-size:.9rem">Płatności cykliczne w tym miesiącu: ${money0(mr.total)}${mr.unpaid?`, w tym ${money0(mr.unpaid)} jeszcze do zapłaty. Prognoza wydatków: ${money0(out+mr.unpaid)}${b?` z ${money0(b)}`:""}.`:", wszystkie zapłacone."} <a href="#finanse-cykliczne">Zobacz</a></span>`;
   if(document.activeElement!==$("#budgetIn"))$("#budgetIn").value=b?String(b).replace(".",","):"";
+  $("#finChart").innerHTML=chart7(140,true);
   const ce=Object.entries(cats).sort((a,b)=>b[1]-a[1]),max=ce.length?ce[0][1]:1;
   $("#finBars").innerHTML=ce.length?ce.map(([c,v])=>`<div class="bar"><span>${esc(c)}</span><span class="tr"><i style="width:${v/max*100}%"></i></span><span class="v">${money(v)}</span></div>`).join(""):`<p class="muted">Brak wydatków w tym miesiącu.</p>`;
   const list=txs().filter(t=>t.date.startsWith(m)).sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created);

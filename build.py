@@ -10,8 +10,7 @@ js = (SRC / "app.js").read_text()
 body = (SRC / "body.html").read_text()
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
-         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700'
-         '&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">')
+         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap">')
 
 # --- standalone website ---
 if DIST.exists():
@@ -31,8 +30,8 @@ index = f"""<!doctype html>
 <title>Life</title>
 <meta name="description" content="Life – kalendarz, zadania, finanse, nawyki i notatki w jednym miejscu.">
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#E9EDF2" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1219" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Life">
 <link rel="manifest" href="manifest.webmanifest">
@@ -58,7 +57,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceW
     "name": "Life", "short_name": "Life", "lang": "pl",
     "description": "Kalendarz, zadania, finanse, nawyki i notatki w jednym miejscu.",
     "start_url": "./#start", "scope": "./", "display": "standalone",
-    "background_color": "#E9EDF2", "theme_color": "#E9EDF2",
+    "background_color": "#F2F2F7", "theme_color": "#F2F2F7",
     "icons": [
         {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
         {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
@@ -100,20 +99,19 @@ def icon(size, pad=0.0):
     im = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     s = size
-    d.rounded_rectangle([0, 0, s - 1, s - 1], radius=int(s * (0.0 if pad else 0.22)), fill=(23, 32, 49, 255))
+    d.rounded_rectangle([0, 0, s - 1, s - 1], radius=int(s * (0.0 if pad else 0.22)), fill=(0, 122, 255, 255))
     u = s * (1 - 2 * pad) / 100
     o = s * pad
     R = lambda x0, y0, x1, y1, c: d.rectangle([o + x0 * u, o + y0 * u, o + x1 * u, o + y1 * u], fill=c)
-    R(24, 62, 78, 76, (245, 217, 78, 255))      # highlighter stroke
-    R(30, 20, 44, 72, (251, 252, 253, 255))     # L stem
-    R(30, 58, 70, 72, (251, 252, 253, 255))     # L foot
+    R(30, 20, 44, 72, (255, 255, 255, 255))     # L stem
+    R(30, 58, 70, 72, (255, 255, 255, 255))     # L foot
     return im
 icon(512, 0.1).save(DIST / "icon-512.png")
 icon(192).save(DIST / "icon-192.png")
 icon(180, 0.06).convert("RGB").save(DIST / "apple-touch-icon.png")
-(DIST / "icon.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#172031"/>'
-                               '<rect x="24" y="62" width="54" height="14" fill="#F5D94E"/><rect x="30" y="20" width="14" height="52" fill="#FBFCFD"/>'
-                               '<rect x="30" y="58" width="40" height="14" fill="#FBFCFD"/></svg>')
+(DIST / "icon.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#007AFF"/>'
+                               '<rect x="30" y="20" width="14" height="52" fill="#FFFFFF"/>'
+                               '<rect x="30" y="58" width="40" height="14" fill="#FFFFFF"/></svg>')
 (DIST / "404.html").write_text(index)
 (DIST / ".nojekyll").write_text("")
 
