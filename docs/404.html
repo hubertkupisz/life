@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Life</title>
+<meta name="description" content="Life – kalendarz, zadania, finanse, nawyki i notatki w jednym miejscu.">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#E9EDF2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1219" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Life">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="app.css?v=88153d08">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-start" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></symbol>
+  <symbol id="i-kalendarz" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-zadania" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12.2l2.5 2.5 4.5-5.2"/></symbol>
+  <symbol id="i-finanse" viewBox="0 0 24 24"><path d="M5 7.5h12.5a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5.5A2 2 0 0 1 3.5 18V6a2 2 0 0 1 2-2h10"/><path d="M15.5 13.8h1.5"/></symbol>
+  <symbol id="i-nawyki" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 0 1 13-5.1l2 2"/><path d="M19.5 4v5h-5"/><path d="M19.5 12a7.5 7.5 0 0 1-13 5.1l-2-2"/><path d="M4.5 20v-5h5"/></symbol>
+  <symbol id="i-notatki" viewBox="0 0 24 24"><path d="M6 3.5h8.5l4 4v13H6z"/><path d="M14 3.5V8h4.5M9 13h6.5M9 16.5h4.5"/></symbol>
+</svg>
+
+<div class="app">
+  <div class="top">
+    <a class="logo" href="#start">Lif<i>e</i></a>
+    <span class="topr">
+      <span id="status"><i class="dot" id="statusDot"></i><span id="statusTxt">Zapis w tej przeglądarce</span></span>
+      <button class="ghost" id="backupBtn" data-act="backup" aria-expanded="false" hidden>Kopia zapasowa</button>
+    </span>
+  </div>
+  <div class="panel backup" id="backupPanel" hidden>
+    <h2>Kopia zapasowa</h2>
+    <p class="muted">Dane Life są zapisane w tej przeglądarce na tym urządzeniu. Pobierz kopię, żeby ich nie stracić albo przenieść je na inne urządzenie.</p>
+    <div class="row">
+      <button class="btn" data-act="export">Pobierz kopię (.json)</button>
+      <label class="ghost filebtn">Wczytaj kopię z pliku<input type="file" id="importFile" accept="application/json,.json"></label>
+    </div>
+    <span class="muted" id="backupMsg" style="font-size:.9rem"></span>
+  </div>
+
+  <!-- ========== START ========== -->
+  <section data-view="start">
+    <header class="hero">
+      <div class="label" id="hDate"></div>
+      <h1 id="greet">Dzień dobry</h1>
+      <p class="lede" id="hSummary"></p>
+    </header>
+    <div class="empty" id="homeEmpty" hidden>
+      <p>Life jest jeszcze puste. Dodawaj wpisy w poszczególnych zakładkach albo wczytaj przykładowe dane, żeby zobaczyć, jak wszystko działa. Przykłady usuniesz jednym kliknięciem.</p>
+      <button class="btn" data-act="examples">Wczytaj przykładowe dane</button>
+    </div>
+    <div class="bento">
+      <article class="widget w-cal" data-go="kalendarz">
+        <header class="wh"><h2><svg class="i"><use href="#i-kalendarz"/></svg>Kalendarz</h2><a class="open" href="#kalendarz">Otwórz</a></header>
+        <div id="wCal"></div>
+      </article>
+      <article class="widget w-tasks" data-go="zadania">
+        <header class="wh"><h2><svg class="i"><use href="#i-zadania"/></svg>Do zrobienia</h2><a class="open" href="#zadania">Otwórz</a></header>
+        <div id="wTasks"></div>
+      </article>
+      <article class="widget w-fin" data-go="finanse">
+        <header class="wh"><h2><svg class="i"><use href="#i-finanse"/></svg>Finanse</h2><a class="open" href="#finanse">Otwórz</a></header>
+        <div id="wFin"></div>
+      </article>
+      <article class="widget w-hab" data-go="nawyki">
+        <header class="wh"><h2><svg class="i"><use href="#i-nawyki"/></svg>Nawyki</h2><a class="open" href="#nawyki">Otwórz</a></header>
+        <div id="wHab"></div>
+      </article>
+      <article class="widget w-notes" data-go="notatki">
+        <header class="wh"><h2><svg class="i"><use href="#i-notatki"/></svg>Notatki</h2><a class="open" href="#notatki">Otwórz</a></header>
+        <div id="wNotes"></div>
+      </article>
+    </div>
+    <p class="muted" id="exTools" hidden style="font-size:.88rem">Widzisz przykładowe dane. <button class="ghost" data-act="clearEx" style="margin-left:6px">Usuń przykłady</button></p>
+  </section>
+
+  <!-- ========== KALENDARZ ========== -->
+  <section data-view="kalendarz" hidden>
+    <header class="vh">
+      <h1>Kalendarz</h1>
+      <div class="nav">
+        <button class="ghost" data-act="calPrev" aria-label="Poprzedni miesiąc">←</button>
+        <span class="cur" id="calMonth"></span>
+        <button class="ghost" data-act="calNext" aria-label="Następny miesiąc">→</button>
+        <button class="ghost" data-act="calToday">Dziś</button>
+      </div>
+    </header>
+    <div class="two">
+      <div class="cal" id="calGrid"></div>
+      <aside class="panel">
+        <div><div class="label" id="calDayRel"></div><h2 id="calDayTitle"></h2></div>
+        <div id="calDayList"></div>
+        <form class="form" id="evForm" autocomplete="off">
+          <span class="label">Nowe wydarzenie</span>
+          <input class="field" id="evTitle" placeholder="Np. Dentysta" aria-label="Nazwa wydarzenia" maxlength="120">
+          <div class="row">
+            <input class="field" type="time" id="evTime" aria-label="Godzina">
+            <select class="field" id="evCat" aria-label="Kategoria">
+              <option value="praca">Praca</option><option value="dom">Dom</option><option value="zdrowie">Zdrowie</option><option value="spotkanie" selected>Spotkanie</option><option value="inne">Inne</option>
+            </select>
+          </div>
+          <button class="btn" type="submit">Dodaj wydarzenie</button>
+        </form>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ========== ZADANIA ========== -->
+  <section data-view="zadania" hidden>
+    <header class="vh">
+      <h1>Zadania</h1>
+      <div class="seg" role="group" aria-label="Filtr">
+        <button data-act="tf" data-f="active" aria-pressed="true">Aktywne</button>
+        <button data-act="tf" data-f="done" aria-pressed="false">Zrobione</button>
+      </div>
+    </header>
+    <form class="panel form" id="taskForm" autocomplete="off">
+      <input class="field" id="tTitle" placeholder="Co masz do zrobienia?" aria-label="Nowe zadanie" maxlength="200">
+      <div class="row">
+        <input class="field" type="date" id="tDate" aria-label="Termin">
+        <select class="field" id="tPrio" aria-label="Priorytet">
+          <option value="A">A · ważne</option><option value="B" selected>B · średnie</option><option value="C">C · drobne</option>
+        </select>
+        <button class="btn" type="submit">Dodaj</button>
+      </div>
+      <span class="muted" style="font-size:.85rem">Bez daty zadanie trafi do grupy „Kiedyś”.</span>
+    </form>
+    <div class="panel dotted" id="taskGroups"></div>
+  </section>
+
+  <!-- ========== FINANSE ========== -->
+  <section data-view="finanse" hidden>
+    <header class="vh">
+      <div style="display:grid;gap:10px">
+        <h1>Finanse</h1>
+        <nav class="seg" aria-label="Podzakładki finansów">
+          <a href="#finanse" id="finTabOv">Przegląd</a>
+          <a href="#finanse-cykliczne" id="finTabRec">Płatności cykliczne</a>
+        </nav>
+      </div>
+      <div class="nav" id="finNav">
+        <button class="ghost" data-act="finPrev" aria-label="Poprzedni miesiąc">←</button>
+        <span class="cur" id="finMonth"></span>
+        <button class="ghost" data-act="finNext" aria-label="Następny miesiąc">→</button>
+      </div>
+    </header>
+
+    <div class="sub" id="finRec" hidden>
+      <div class="stats" id="recStats"></div>
+      <div class="two">
+        <div class="sub">
+          <div class="panel"><h2>Do zapłaty</h2><p class="muted" style="font-size:.88rem;margin-top:-6px">Zaległe i nadchodzące terminy z najbliższych 30 dni.</p><ul class="list" id="recDue"></ul></div>
+          <div class="panel"><h2>Wszystkie płatności</h2><ul class="list" id="recAll"></ul></div>
+        </div>
+        <form class="panel form" id="recForm" autocomplete="off">
+          <h2 id="recFormTitle">Nowa płatność cykliczna</h2>
+          <input class="field" id="recName" placeholder="Nazwa, np. Internet" aria-label="Nazwa płatności" maxlength="80">
+          <input class="field" id="recAmt" inputmode="decimal" placeholder="Kwota w zł, np. 69,99" aria-label="Kwota">
+          <div class="row">
+            <select class="field" id="recFreq" aria-label="Jak często">
+              <option value="weekly">Co tydzień</option><option value="monthly" selected>Co miesiąc</option><option value="quarterly">Co kwartał</option><option value="yearly">Co rok</option>
+            </select>
+            <select class="field" id="recCat" aria-label="Kategoria"></select>
+          </div>
+          <label class="label" for="recStart">Najbliższy termin płatności</label>
+          <input class="field" type="date" id="recStart">
+          <span class="err" id="recErr" hidden></span>
+          <div class="row">
+            <button class="btn" type="submit" id="recSubmit">Dodaj płatność</button>
+            <button class="ghost" type="button" data-act="recCancel" id="recCancel" hidden>Anuluj</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="sub" id="finOv">
+    <div class="stats" id="finStats"></div>
+    <div class="two">
+      <div style="display:grid;gap:20px;min-width:0">
+        <div class="panel budget">
+          <h2>Budżet miesięczny</h2>
+          <div id="finBudget"></div>
+          <form class="row" id="budgetForm" autocomplete="off">
+            <input class="field" id="budgetIn" inputmode="decimal" placeholder="Limit wydatków, np. 4000" aria-label="Limit wydatków w miesiącu">
+            <button class="ghost" type="submit">Ustaw limit</button>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Wydatki według kategorii</h2>
+          <div class="bars" id="finBars"></div>
+        </div>
+        <div class="panel">
+          <h2>Transakcje</h2>
+          <ul class="list" id="finList"></ul>
+        </div>
+      </div>
+      <form class="panel form" id="txForm" autocomplete="off">
+        <h2>Dodaj transakcję</h2>
+        <div class="seg" role="group" aria-label="Rodzaj">
+          <button type="button" data-act="txType" data-t="out" aria-pressed="true">Wydatek</button>
+          <button type="button" data-act="txType" data-t="in" aria-pressed="false">Przychód</button>
+        </div>
+        <input class="field" id="txAmt" inputmode="decimal" placeholder="Kwota w zł, np. 49,90" aria-label="Kwota">
+        <select class="field" id="txCat" aria-label="Kategoria"></select>
+        <input class="field" type="date" id="txDate" aria-label="Data">
+        <input class="field" id="txNote" placeholder="Opis (opcjonalnie)" aria-label="Opis" maxlength="120">
+        <span class="err" id="txErr" hidden></span>
+        <button class="btn" type="submit">Zapisz</button>
+      </form>
+    </div>
+    </div>
+  </section>
+
+  <!-- ========== NAWYKI ========== -->
+  <section data-view="nawyki" hidden>
+    <header class="vh">
+      <h1>Nawyki</h1>
+      <div class="nav">
+        <button class="ghost" data-act="habPrev" aria-label="Poprzedni tydzień">←</button>
+        <span class="cur" id="habWeek"></span>
+        <button class="ghost" data-act="habNext" aria-label="Następny tydzień">→</button>
+      </div>
+    </header>
+    <div class="panel">
+      <div class="htable" id="habTable"></div>
+      <form class="row" id="habForm" autocomplete="off">
+        <input class="field" id="habName" placeholder="Nowy nawyk, np. 10 min rozciągania" aria-label="Nowy nawyk" maxlength="60">
+        <button class="btn" type="submit">Dodaj nawyk</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ========== NOTATKI ========== -->
+  <section data-view="notatki" hidden>
+    <header class="vh">
+      <h1>Notatki</h1>
+      <button class="btn" data-act="newNote">Nowa notatka</button>
+    </header>
+    <div class="notes-layout">
+      <div class="nlist" id="noteList"></div>
+      <div class="panel dotted" id="noteEditorWrap">
+        <div class="editor" id="noteEditor" hidden>
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <span class="label" id="noteMeta"></span>
+            <span style="flex:0 0 auto;display:flex;gap:6px">
+              <button class="ghost" data-act="pinNote" id="pinBtn">Przypnij</button>
+              <button class="ghost" data-act="delNote">Usuń</button>
+            </span>
+          </div>
+          <input class="ttl" id="nTitle" placeholder="Tytuł" aria-label="Tytuł notatki" maxlength="120">
+          <textarea id="nBody" placeholder="Pisz tutaj…" aria-label="Treść notatki"></textarea>
+        </div>
+        <p class="muted" id="noteEmpty">Wybierz notatkę z listy albo utwórz nową.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="dock" aria-label="Zakładki">
+  <a href="#start" data-nav="start"><svg class="i"><use href="#i-start"/></svg><span class="tip">Start</span></a>
+  <a href="#kalendarz" data-nav="kalendarz"><svg class="i"><use href="#i-kalendarz"/></svg><span class="tip">Kalendarz</span></a>
+  <a href="#zadania" data-nav="zadania"><svg class="i"><use href="#i-zadania"/></svg><span class="tip">Zadania</span></a>
+  <a href="#finanse" data-nav="finanse"><svg class="i"><use href="#i-finanse"/></svg><span class="tip">Finanse</span></a>
+  <a href="#nawyki" data-nav="nawyki"><svg class="i"><use href="#i-nawyki"/></svg><span class="tip">Nawyki</span></a>
+  <a href="#notatki" data-nav="notatki"><svg class="i"><use href="#i-notatki"/></svg><span class="tip">Notatki</span></a>
+</nav>
+
+<script src="app.js?v=88153d08"></script>
+<script>
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
