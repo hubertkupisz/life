@@ -4,7 +4,11 @@ Writes: car.bin (mesh), car-shadow.png (ground contact shadow, top view), anchor
 import sys, json, struct, numpy as np
 from PIL import Image
 from skimage.measure import marching_cubes
+import os
 import render_car as rc
+SIMPLE = os.environ.get("SIMPLE") == "1"
+if SIMPLE:
+    import render_variants  # noqa: F401  (swaps in the simplified body)
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "."
 STEP = float(sys.argv[2]) if len(sys.argv) > 2 else 0.02
@@ -26,12 +30,16 @@ n = rc.normal(verts)
 d, mat = rc.scene(verts[:, 0], verts[:, 1], verts[:, 2])
 x, y, z = verts[:, 0], verts[:, 1], verts[:, 2]
 glass = (mat == 0) & (y > 1.045) & (y < 1.43) & (n[:, 1] < 0.86) & (x < 1.0) & (x > -1.9) & ~((np.abs(x + 0.42) < 0.045) & (np.abs(n[:, 2]) > 0.5))
+if SIMPLE:
+    glass = (mat == 0) & (y > 1.06) & (y < 1.42) & (n[:, 1] < 0.86) & (x < 0.98) & (x > -1.88)
 lampd = rc.round_box(x, y, np.abs(z), 2.10, 0.73, 0.62, 0.20, 0.05, 0.26, 0.02)
 rld = rc.round_box(x, y, np.abs(z), -2.18, 0.88, 0.66, 0.10, 0.06, 0.22, 0.03)
 lamp = (mat == 0) & ((lampd < 0.0) | (rld < 0.0))
 grille = (mat == 0) & (x > 2.1) & (rc.round_box(x, y, z * (0.46 / (0.40 + 0.10 * np.clip((0.72 - y) / 0.3, 0, 1))), 2.24, 0.58, 0, 0.10, 0.17, 0.46, 0.07) < 0.012)
 m = mat.copy()                      # 0 body, 1 tire, 2 rim, 3 glass, 4 lamp, 5 grille
-m[glass] = 3; m[lamp] = 4; m[grille] = 5
+m[glass] = 3
+if not SIMPLE:
+    m[lamp] = 4; m[grille] = 5
 
 # baked ambient occlusion
 a = rc.ao(verts, n)
@@ -45,8 +53,10 @@ lines = np.minimum.reduce([
     np.where((az > 0.78) & (y > 0.42) & (y < 1.03), np.abs(x + 1.08), 9),      # rear door
 ])
 line = np.clip(1 - lines / 0.016, 0, 1)
+if SIMPLE:
+    line[:] = 0
 
-albedo = np.choose(m, [0.82, 0.17, 0.56, 0.42, 0.46, 0.30])
+albedo = np.choose(m, [0.97, 0.30, 0.86, 0.80, 0.46, 0.30]) if SIMPLE else np.choose(m, [0.82, 0.17, 0.56, 0.42, 0.46, 0.30])
 # quantise
 lo = np.array([X0, Y0, Z0]); hi = np.array([X1, Y1, Z1])
 q = np.round((verts - lo) / (hi - lo) * 65535).astype(np.uint16)

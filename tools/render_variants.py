@@ -18,7 +18,7 @@ def body_simple(x, y, z):
     cabin = smax(cabin, y - (1.50 + 0.04 * (x + 0.1)), 0.12)
     d = smin(lower, cabin, 0.16)
     for (wx, wy, wz) in WHEELS:
-        d = smax(d, -cyl_z(x, y, z, wx, wy, 0, 0.46, 1.4), 0.04)
+        d = smax(d, -cyl_z(x, y, z, wx, wy, np.sign(wz) * 0.92, 0.47, 0.34, 0.04), 0.06)
     mirror = ellipsoid(x, y, az, 0.55, 1.07, 0.95, 0.13, 0.07, 0.11)
     return np.minimum(d, mirror)
 
