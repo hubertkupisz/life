@@ -36,7 +36,20 @@ a{color:var(--cobalt)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* top bar */
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px 14px;margin-bottom:18px}
+.topl{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;min-width:0;flex:1 1 auto}
+.topr .ghost{white-space:nowrap}
+.iconbtn{width:38px;height:38px;flex:0 0 auto;border-radius:10px;border:1px solid var(--rule);background:transparent;color:var(--ink);display:inline-grid;place-items:center;cursor:pointer;padding:0}
+.iconbtn:hover{border-color:var(--muted);background:var(--sheet)}
+.iconbtn svg{width:19px;height:19px}
+.iconbtn.spin svg,.ptr.go svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (max-width:520px){.top{align-items:flex-start}.topl{flex-direction:column;align-items:flex-start;gap:2px}#status{font-size:.74rem}.topr{gap:6px}.topr .ghost{padding:6px 10px}}
+html,body{overscroll-behavior-y:contain}
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) - 46px);z-index:30;width:42px;height:42px;border-radius:50%;background:var(--sheet);border:1px solid var(--rule);box-shadow:0 6px 18px rgba(15,22,36,.18);display:grid;place-items:center;color:var(--muted);transform:translate(-50%,0);pointer-events:none}
+.ptr svg{width:20px;height:20px}
+.ptr.ready,.ptr.go{color:var(--cobalt);border-color:var(--cobalt)}
+.ptr.back{transition:transform .2s ease}
 .logo{font-family:var(--display);font-weight:800;font-size:1.35rem;letter-spacing:-.03em;text-decoration:none;color:var(--ink)}
 .logo i{font-style:normal;background:var(--hi);color:var(--hi-ink);border-radius:4px;padding:0 3px;margin-left:1px}
 #status{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px}
@@ -203,10 +216,11 @@ a{color:var(--cobalt)}
 .dock a:hover .tip,.dock a:focus-visible .tip{opacity:1}
 @media (max-width:400px){.dock a{width:42px;height:42px}}
 svg.i{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:reduce){.iconbtn.spin svg,.ptr.go svg{animation-duration:2s}}
 @media (prefers-reduced-motion:no-preference){.widget,.cell,.dock a,.ghost,.hc,.icon{transition:background-color .15s,border-color .15s,color .15s}.dock a .tip{transition:opacity .15s}}
 
 /* top bar extras + backup */
-.topr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.topr{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;justify-content:flex-end}
 .acct{margin-bottom:18px}
 .acct-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
 .backup-box{border-left:1px solid var(--rule);padding-left:28px}

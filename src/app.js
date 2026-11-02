@@ -415,6 +415,8 @@ document.addEventListener("click",e=>{
       $("#recFreq").value=it.freq;render();$("#recCat").value=it.cat;$("#recStart").value=nextDue(it)||it.start;$("#recName").focus()},
     recCancel:resetRecForm,
     recToggle:()=>{if(it)put(id,{...it,active:it.active===false})},
+    theme:toggleTheme,
+    refresh:refreshPage,
     acct:()=>{const p=$("#acctPanel");p.hidden=!p.hidden;$("#acctBtn").setAttribute("aria-expanded",!p.hidden);$("#backupMsg").textContent="";if(!p.hidden&&!sbUser)$("#authEmail").focus()},
     authMode:()=>{authMode=b.dataset.m;acctMsg("");renderAcct()},
     forgot:async()=>{const email=$("#authEmail").value.trim();
@@ -502,7 +504,44 @@ async function loadExamples(){
 }
 
 /* ---------- boot ---------- */
-loadLocal();setStatus("local");initCloud();route();
+/* ---------- theme ---------- */
+const LS_THEME="life.theme",darkMQ=matchMedia("(prefers-color-scheme: dark)");
+const curTheme=()=>document.documentElement.dataset.theme||(darkMQ.matches?"dark":"light");
+function syncThemeUI(){const dark=curTheme()==="dark",b=$("#themeBtn"),l=dark?"Włącz jasny motyw":"Włącz ciemny motyw";
+  b.querySelector("use").setAttribute("href",dark?"#i-sun":"#i-moon");b.setAttribute("aria-label",l);b.title=l;
+  const bg=getComputedStyle(document.body).backgroundColor;$$('meta[name="theme-color"]').forEach(m=>m.setAttribute("content",bg))}
+function toggleTheme(){const t=curTheme()==="dark"?"light":"dark";document.documentElement.dataset.theme=t;lsSet(LS_THEME,t);syncThemeUI()}
+{const t=lsGet(LS_THEME);if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}
+darkMQ.addEventListener?.("change",syncThemeUI);
+
+/* ---------- refresh: button + pull down on touch screens ---------- */
+function refreshPage(){
+  try{flushNote()}catch(e){}
+  $("#refreshBtn").classList.add("spin");
+  setTimeout(()=>location.reload(),250);
+}
+(()=>{
+  const el=$("#ptr"),txt=$("#ptrTxt"),icon=el.querySelector("svg"),TH=70,MAX=105;
+  let y0=null,dy=0,pulling=false;
+  const atTop=()=>(document.scrollingElement||document.documentElement).scrollTop<=0;
+  const blocked=t=>t.closest("input,textarea,select,.dock,.htable,.acct");
+  function show(d){el.hidden=false;el.classList.remove("back");el.style.transform=`translate(-50%,${d}px)`;
+    const ready=d>=TH;el.classList.toggle("ready",ready);icon.style.transform=`rotate(${Math.round(d/TH*300)}deg)`;
+    txt.textContent=ready?"Puść, aby odświeżyć":"Pociągnij, aby odświeżyć"}
+  function reset(){el.classList.add("back");el.style.transform="translate(-50%,0)";el.classList.remove("ready");
+    setTimeout(()=>{if(!pulling&&!el.classList.contains("go"))el.hidden=true},200)}
+  addEventListener("touchstart",e=>{y0=(e.touches.length===1&&atTop()&&!blocked(e.target))?e.touches[0].clientY:null;dy=0;pulling=false},{passive:true});
+  addEventListener("touchmove",e=>{
+    if(y0===null)return;
+    const d=e.touches[0].clientY-y0;
+    if(!pulling&&(d<=6||!atTop())){if(d<0)y0=null;return}
+    pulling=true;e.preventDefault();dy=Math.min(MAX,(d-6)*.5);show(dy)},{passive:false});
+  const end=()=>{if(!pulling){y0=null;return}pulling=false;y0=null;
+    if(dy>=TH){el.classList.add("go");el.style.transform=`translate(-50%,${TH}px)`;txt.textContent="Odświeżam…";refreshPage()}else reset()};
+  addEventListener("touchend",end);addEventListener("touchcancel",()=>{pulling=false;y0=null;reset()});
+})();
+
+loadLocal();setStatus("local");initCloud();route();syncThemeUI();
 (async()=>{
   if(!IN_CLAUDE)return;
   try{

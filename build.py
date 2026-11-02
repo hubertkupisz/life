@@ -38,6 +38,7 @@ index = f"""<!doctype html>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>try{{var t=localStorage.getItem("life.theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}}catch(e){{}}</script>
 {FONTS}
 <link rel="stylesheet" href="app.css?v={ver}">
 </head>

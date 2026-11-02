@@ -5,13 +5,22 @@
   <symbol id="i-finanse" viewBox="0 0 24 24"><path d="M5 7.5h12.5a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5.5A2 2 0 0 1 3.5 18V6a2 2 0 0 1 2-2h10"/><path d="M15.5 13.8h1.5"/></symbol>
   <symbol id="i-nawyki" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 0 1 13-5.1l2 2"/><path d="M19.5 4v5h-5"/><path d="M19.5 12a7.5 7.5 0 0 1-13 5.1l-2-2"/><path d="M4.5 20v-5h5"/></symbol>
   <symbol id="i-notatki" viewBox="0 0 24 24"><path d="M6 3.5h8.5l4 4v13H6z"/><path d="M14 3.5V8h4.5M9 13h6.5M9 16.5h4.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 12.5a7.5 7.5 0 1 1-2.2-6.3"/><path d="M19.5 4.5v4.6h-4.6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></symbol>
 </svg>
+
+<div class="ptr" id="ptr" hidden aria-live="polite"><svg class="i"><use href="#i-refresh"/></svg><span class="sr" id="ptrTxt">Pociągnij, aby odświeżyć</span></div>
 
 <div class="app">
   <div class="top">
-    <a class="logo" href="#start">Lif<i>e</i></a>
-    <span class="topr">
+    <div class="topl">
+      <a class="logo" href="#start">Lif<i>e</i></a>
       <span id="status"><i class="dot" id="statusDot"></i><span id="statusTxt">Zapis w tej przeglądarce</span></span>
+    </div>
+    <span class="topr">
+      <button class="iconbtn" data-act="refresh" id="refreshBtn" aria-label="Odśwież stronę" title="Odśwież stronę"><svg class="i"><use href="#i-refresh"/></svg></button>
+      <button class="iconbtn" data-act="theme" id="themeBtn" aria-label="Włącz ciemny motyw" title="Włącz ciemny motyw"><svg class="i"><use href="#i-moon"/></svg></button>
       <button class="ghost" id="acctBtn" data-act="acct" aria-expanded="false" aria-controls="acctPanel" hidden>Konto</button>
     </span>
   </div>
