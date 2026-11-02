@@ -1,6 +1,6 @@
 // Life offline cache, version 623c6e17
 const CACHE="life-623c6e17";
-const SHELL=["./","app.css?v=623c6e17","app.js?v=623c6e17","manifest.webmanifest","icon.svg","icon-192.png","car.bin.gz","car-clay.webp"];
+const SHELL=["./","app.css?v=623c6e17","app.js?v=623c6e17","manifest.webmanifest","icon.svg","icon-192.png","car.bin.gz?v=4f6fcbf3","car-clay.webp?v=4f6fcbf3"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:"reload"})))).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{

@@ -29,6 +29,9 @@ BASE = (":root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);paddi
 (DIST / "app.js").write_text(js)
 ver = hashlib.sha1((css + js + body).encode() + (ASSETS / "car.bin.gz").read_bytes()).hexdigest()[:8]
 shutil.copy(ASSETS / "car.bin.gz", DIST / "car.bin.gz")
+mver = hashlib.sha1((ASSETS / "car.bin.gz").read_bytes() + (ASSETS / "car-clay.webp").read_bytes()).hexdigest()[:8]
+js = js.replace('fetch("car.bin.gz")', f'fetch("car.bin.gz?v={mver}")').replace('f.src="car-clay.webp"', f'f.src="car-clay.webp?v={mver}"')
+(DIST / "app.js").write_text(js)
 shutil.copy(ASSETS / "car-clay.webp", DIST / "car-clay.webp")
 
 index = f"""<!doctype html>
@@ -79,7 +82,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceW
 
 (DIST / "sw.js").write_text(f"""// Life offline cache, version {ver}
 const CACHE="life-{ver}";
-const SHELL=["./","app.css?v={ver}","app.js?v={ver}","manifest.webmanifest","icon.svg","icon-192.png","car.bin.gz","car-clay.webp"];
+const SHELL=["./","app.css?v={ver}","app.js?v={ver}","manifest.webmanifest","icon.svg","icon-192.png","car.bin.gz?v={mver}","car-clay.webp?v={mver}"];
 self.addEventListener("install",e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL.map(u=>new Request(u,{{cache:"reload"}})))).then(()=>self.skipWaiting()))}});
 self.addEventListener("activate",e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))}});
 self.addEventListener("fetch",e=>{{

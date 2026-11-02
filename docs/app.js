@@ -849,7 +849,7 @@ gl_FragColor=vec4(c*0.985,c*0.99,c,1.0);}`;
   async function loadMesh(){
     let u8;
     if(window.LIFE_CAR_B64)u8=Uint8Array.from(atob(window.LIFE_CAR_B64),c=>c.charCodeAt(0));
-    else{const r=await fetch("car.bin.gz");if(!r.ok)throw new Error("mesh");u8=new Uint8Array(await r.arrayBuffer())}
+    else{const r=await fetch("car.bin.gz?v=4f6fcbf3");if(!r.ok)throw new Error("mesh");u8=new Uint8Array(await r.arrayBuffer())}
     const ab=await gunzip(u8),dv=new DataView(ab);
     if(String.fromCharCode(...new Uint8Array(ab,0,4))!=="LCAR")throw new Error("format");
     const nv=dv.getUint32(4,true),nt=dv.getUint32(8,true);lo=[0,1,2].map(i=>dv.getFloat32(12+i*4,true));hi=[0,1,2].map(i=>dv.getFloat32(24+i*4,true));
@@ -918,7 +918,7 @@ gl_FragColor=vec4(c*0.985,c*0.99,c,1.0);}`;
   }
   function animTo(t){const s=yaw,d=((t-s+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI,t0=performance.now();vel=0;
     const step=now=>{const k=Math.min(1,(now-t0)/500),e=1-Math.pow(1-k,3);yaw=s+d*e;draw();if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
-  function fallback(){failed=true;cv.hidden=true;$("#carHint").hidden=true;const f=$("#carFallback");if(!window.LIFE_CAR_B64){f.src="car-clay.webp";f.hidden=false}}
+  function fallback(){failed=true;cv.hidden=true;$("#carHint").hidden=true;const f=$("#carFallback");if(!window.LIFE_CAR_B64){f.src="car-clay.webp?v=4f6fcbf3";f.hidden=false}}
   async function start(){
     if(started)return;started=true;cv=$("#carCanvas");
     try{gl=cv.getContext("webgl2",{antialias:true,premultipliedAlpha:true,alpha:true})||cv.getContext("webgl",{antialias:true,premultipliedAlpha:true,alpha:true});
