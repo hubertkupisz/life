@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap">
-<link rel="stylesheet" href="app.css?v=27470164">
+<link rel="stylesheet" href="app.css?v=14380a22">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -26,6 +26,10 @@
   <symbol id="i-zadania" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.5 2.5 4.5-5.2"/></symbol>
   <symbol id="i-finanse" viewBox="0 0 24 24"><path d="M5 7.5h12.5a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5.5A2 2 0 0 1 3.5 18V6a2 2 0 0 1 2-2h10"/><path d="M15.5 13.8h1.5"/></symbol>
   <symbol id="i-nawyki" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 0 1 13-5.1l2 2"/><path d="M19.5 4v5h-5"/><path d="M19.5 12a7.5 7.5 0 0 1-13 5.1l-2-2"/><path d="M4.5 20v-5h5"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><path d="M4 15.5v-2.8l1.9-4.6A2 2 0 0 1 7.7 6.9h8.6a2 2 0 0 1 1.8 1.2l1.9 4.6v2.8"/><rect x="3.5" y="12.5" width="17" height="5" rx="1.5"/><path d="M6 17.5v1.6M18 17.5v1.6"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.3L4.5 16.5l3 3 4.7-4.7a4 4 0 0 0 5.3-5.3l-2.5 2.5-2.5-.5-.5-2.5z"/></symbol>
+  <symbol id="i-fuel" viewBox="0 0 24 24"><path d="M5 20V5.5A1.5 1.5 0 0 1 6.5 4h6A1.5 1.5 0 0 1 14 5.5V20M4 20h11M14 10h2a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 0 3 0V8l-2.5-2.5M7.5 8h4"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="17" height="13" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8.5 6.5l1.5-2.5h4l1.5 2.5"/></symbol>
   <symbol id="i-notatki" viewBox="0 0 24 24"><path d="M6 3.5h8.5l4 4v13H6z"/><path d="M14 3.5V8h4.5M9 13h6.5M9 16.5h4.5"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></symbol>
   <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 0 1 13-5.1l2 2"/><path d="M19.5 4v5h-5"/></symbol>
@@ -268,6 +272,121 @@
     </div>
   </section>
 
+  <!-- ========== SAMOCHÓD ========== -->
+  <section data-view="samochod" hidden>
+    <header class="vh">
+      <div style="display:grid;gap:4px"><span class="label">Mój samochód</span><h1>Samochód</h1></div>
+      <button class="ghost" data-act="carEdit" id="carEditBtn" aria-expanded="false" aria-controls="carEditForm" style="border-radius:999px">Edytuj</button>
+    </header>
+
+    <form class="panel form" id="carEditForm" autocomplete="off" hidden>
+      <h2>Dane samochodu</h2>
+      <div class="row">
+        <input class="field" id="ceMake" placeholder="Marka" aria-label="Marka" maxlength="40">
+        <input class="field" id="ceModel" placeholder="Model" aria-label="Model" maxlength="40">
+        <input class="field" id="ceYear" inputmode="numeric" placeholder="Rok" aria-label="Rok produkcji" maxlength="4" style="flex:0 1 90px">
+      </div>
+      <div class="row">
+        <input class="field" id="ceEngine" placeholder="Silnik, np. 2.0 TDI 140 KM" aria-label="Silnik" maxlength="60">
+        <input class="field" id="cePlate" placeholder="Nr rejestracyjny" aria-label="Numer rejestracyjny" maxlength="12" style="flex:0 1 160px">
+      </div>
+      <label class="label" for="ceKm">Aktualny przebieg (km)</label>
+      <input class="field" id="ceKm" inputmode="numeric" placeholder="np. 186400" style="max-width:220px">
+      <div class="row" style="align-items:center">
+        <label class="ghost filebtn"><svg class="i" style="width:16px;height:16px;margin-right:6px"><use href="#i-camera"/></svg>Dodaj zdjęcie auta<input type="file" id="cePhoto" accept="image/*"></label>
+        <button type="button" class="linkbtn" data-act="carPhotoDel" id="cePhotoDel" hidden>Usuń zdjęcie</button>
+      </div>
+      <span class="err" id="ceErr" hidden></span>
+      <div class="row"><button class="btn" type="submit">Zapisz</button><button class="ghost" type="button" data-act="carEdit">Anuluj</button></div>
+    </form>
+
+    <div class="car-grid">
+      <section class="panel car-hero" aria-label="Twój samochód">
+        <div class="car-stage" id="carStage">
+          <div class="seg car-mode" role="group" aria-label="Widok samochodu" id="carModeSeg" hidden>
+            <button type="button" data-act="carMode" data-m="3d" aria-pressed="true">Model 3D</button>
+            <button type="button" data-act="carMode" data-m="photo" aria-pressed="false">Zdjęcie</button>
+          </div>
+          <canvas id="carCanvas" aria-label="Model 3D samochodu. Przeciągnij w bok, żeby obrócić. Strzałki w lewo i w prawo też obracają." tabindex="0"></canvas>
+          <img id="carFallback" alt="Model samochodu" hidden>
+          <img id="carPhoto" alt="Zdjęcie samochodu" hidden>
+          <div class="car-marks" id="carMarks"></div>
+          <span class="car-hint" id="carHint">Przeciągnij, aby obrócić</span>
+        </div>
+        <div class="car-id">
+          <div style="display:grid;gap:2px;min-width:0"><span class="car-name" id="carName">Audi Q3</span><span class="muted" id="carSub" style="font-size:.92rem"></span></div>
+          <span class="plate" id="carPlate"></span>
+        </div>
+        <div class="car-tiles">
+          <div class="ctile"><span>Przebieg</span><b class="num" id="carKm">—</b></div>
+          <div class="ctile"><span>Najbliższa sprawa</span><b class="num" id="carNext">—</b></div>
+        </div>
+      </section>
+
+      <div class="sub">
+        <section class="panel" aria-label="Do zrobienia">
+          <h2 class="wtitle"><span class="chip" style="background:var(--orange-f)"><svg class="i"><use href="#i-wrench"/></svg></span>Do zrobienia</h2>
+          <ul class="list" id="carTasks"></ul>
+          <details class="car-add" id="carTaskAdd">
+            <summary>Dodaj rzecz do zrobienia</summary>
+            <form class="form" id="carTaskForm" autocomplete="off">
+              <input class="field" id="ctTitle" placeholder="Np. Wymienić żarówkę" aria-label="Co trzeba zrobić" maxlength="120">
+              <select class="field" id="ctPart" aria-label="Część samochodu"></select>
+              <div class="row">
+                <label class="sub" style="gap:4px"><span class="label">Termin</span><input class="field" type="date" id="ctDate"></label>
+                <label class="sub" style="gap:4px"><span class="label">Przy przebiegu (km)</span><input class="field" id="ctKm" inputmode="numeric" placeholder="np. 188200"></label>
+              </div>
+              <span class="err" id="ctErr" hidden></span>
+              <div class="row"><button class="btn" type="submit">Dodaj</button></div>
+            </form>
+          </details>
+        </section>
+
+        <section class="panel" aria-label="Opłaty i terminy">
+          <h2 class="wtitle"><span class="chip" style="background:var(--green-f)"><svg class="i"><use href="#i-kalendarz"/></svg></span>Opłaty i terminy</h2>
+          <ul class="list" id="carFees"></ul>
+          <details class="car-add">
+            <summary>Dodaj opłatę</summary>
+            <form class="form" id="carFeeForm" autocomplete="off">
+              <input class="field" id="cfName" placeholder="Np. Ubezpieczenie OC/AC" aria-label="Nazwa opłaty" maxlength="80">
+              <div class="row">
+                <input class="field" id="cfAmt" inputmode="decimal" placeholder="Kwota w zł" aria-label="Kwota">
+                <select class="field" id="cfFreq" aria-label="Jak często"><option value="yearly" selected>Co rok</option><option value="quarterly">Co kwartał</option><option value="monthly">Co miesiąc</option></select>
+              </div>
+              <label class="sub" style="gap:4px"><span class="label">Najbliższy termin</span><input class="field" type="date" id="cfDate"></label>
+              <span class="err" id="cfErr" hidden></span>
+              <div class="row"><button class="btn" type="submit">Dodaj opłatę</button></div>
+              <span class="muted" style="font-size:.82rem">Opłata trafi też do Finanse → Płatności cykliczne.</span>
+            </form>
+          </details>
+        </section>
+      </div>
+
+      <section class="panel car-fuel" aria-label="Paliwo">
+        <div class="wh"><h2 class="wtitle"><span class="chip" style="background:var(--blue-f)"><svg class="i"><use href="#i-fuel"/></svg></span>Paliwo</h2></div>
+        <div class="car-stats" id="fuelStats"></div>
+        <div id="fuelChart"></div>
+        <ul class="list" id="fuelList"></ul>
+        <details class="car-add" id="fuelAdd">
+          <summary>Dodaj tankowanie</summary>
+          <form class="form" id="fuelForm" autocomplete="off">
+            <div class="row">
+              <label class="sub" style="gap:4px"><span class="label">Data</span><input class="field" type="date" id="fuDate"></label>
+              <label class="sub" style="gap:4px"><span class="label">Litry</span><input class="field" id="fuL" inputmode="decimal" placeholder="np. 52,4"></label>
+            </div>
+            <div class="row">
+              <label class="sub" style="gap:4px"><span class="label">Kwota (zł)</span><input class="field" id="fuCost" inputmode="decimal" placeholder="np. 334,84"></label>
+              <label class="sub" style="gap:4px"><span class="label">Stan licznika (km)</span><input class="field" id="fuOdo" inputmode="numeric" placeholder="opcjonalnie"></label>
+            </div>
+            <span class="err" id="fuErr" hidden></span>
+            <div class="row"><button class="btn" type="submit">Zapisz tankowanie</button></div>
+            <span class="muted" style="font-size:.82rem">Tankowanie zapisze się też jako wydatek w Finansach (Transport). Stan licznika pozwala liczyć spalanie.</span>
+          </form>
+        </details>
+      </section>
+    </div>
+  </section>
+
   <!-- ========== NAWYKI ========== -->
   <section data-view="nawyki" hidden>
     <header class="vh">
@@ -318,12 +437,13 @@
   <a href="#kalendarz" data-nav="kalendarz"><svg class="i"><use href="#i-kalendarz"/></svg><span class="tip">Kalendarz</span></a>
   <a href="#zadania" data-nav="zadania"><svg class="i"><use href="#i-zadania"/></svg><span class="tip">Zadania</span></a>
   <a href="#finanse" data-nav="finanse"><svg class="i"><use href="#i-finanse"/></svg><span class="tip">Finanse</span></a>
+  <a href="#samochod" data-nav="samochod"><svg class="i"><use href="#i-auto"/></svg><span class="tip">Samochód</span></a>
   <a href="#nawyki" data-nav="nawyki"><svg class="i"><use href="#i-nawyki"/></svg><span class="tip">Nawyki</span></a>
   <a href="#notatki" data-nav="notatki"><svg class="i"><use href="#i-notatki"/></svg><span class="tip">Notatki</span></a>
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
-<script src="app.js?v=27470164"></script>
+<script src="app.js?v=14380a22"></script>
 <script>
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>

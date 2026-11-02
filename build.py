@@ -7,6 +7,13 @@ ROOT = pathlib.Path(__file__).parent
 SRC, DIST = ROOT / "src", ROOT / "docs"
 css = (SRC / "app.css").read_text()
 js = (SRC / "app.js").read_text()
+import base64
+ASSETS = ROOT / "assets"
+car_js = (SRC / "car.js").read_text()
+car_js = car_js.replace("/*CAR_ANCHORS*/{}", (ASSETS / "anchors.json").read_text().strip())
+car_js = car_js.replace('/*CAR_SHADOW*/""', '"data:image/png;base64,' + base64.b64encode((ASSETS / "car-shadow.png").read_bytes()).decode() + '"')
+assert "/*CAR_JS*/" in js
+js = js.replace("/*CAR_JS*/", car_js)
 body = (SRC / "body.html").read_text()
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
@@ -20,7 +27,9 @@ BASE = (":root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);paddi
         "body{margin:0}img{max-width:100%}\n")
 (DIST / "app.css").write_text(BASE + css)
 (DIST / "app.js").write_text(js)
-ver = hashlib.sha1((css + js + body).encode()).hexdigest()[:8]
+ver = hashlib.sha1((css + js + body).encode() + (ASSETS / "car.bin.gz").read_bytes()).hexdigest()[:8]
+shutil.copy(ASSETS / "car.bin.gz", DIST / "car.bin.gz")
+shutil.copy(ASSETS / "car-clay.webp", DIST / "car-clay.webp")
 
 index = f"""<!doctype html>
 <html lang="pl">
@@ -70,7 +79,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceW
 
 (DIST / "sw.js").write_text(f"""// Life offline cache, version {ver}
 const CACHE="life-{ver}";
-const SHELL=["./","app.css?v={ver}","app.js?v={ver}","manifest.webmanifest","icon.svg","icon-192.png"];
+const SHELL=["./","app.css?v={ver}","app.js?v={ver}","manifest.webmanifest","icon.svg","icon-192.png","car.bin.gz","car-clay.webp"];
 self.addEventListener("install",e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL.map(u=>new Request(u,{{cache:"reload"}})))).then(()=>self.skipWaiting()))}});
 self.addEventListener("activate",e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))}});
 self.addEventListener("fetch",e=>{{
@@ -117,5 +126,7 @@ icon(180, 0.06).convert("RGB").save(DIST / "apple-touch-icon.png")
 
 # --- Claude artifact preview (single file, no document skeleton) ---
 (ROOT.parent / "life.html").write_text(
-    f'<title>Life</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n{FONTS}\n<style>\n{css}</style>\n\n{body}\n<script>\n{js}</script>\n')
+    f'<title>Life</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n{FONTS}\n<style>\n{css}</style>\n\n{body}\n'
+    + '<script>window.LIFE_CAR_B64="' + base64.b64encode((ASSETS / "car.bin.gz").read_bytes()).decode() + '";</script>\n'
+    + f'<script>\n{js}</script>\n')
 print("built", ver, sorted(p.name for p in DIST.iterdir()))

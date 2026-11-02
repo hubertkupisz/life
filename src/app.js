@@ -46,6 +46,8 @@ function put(id,obj,quiet){items.set(id,obj);if(!quiet)render();saveLocal();retu
 async function putMany(entries){for(const[id,o]of entries)items.set(id,o);saveLocal();render();
   if(mode==="db"){for(const[id,o]of entries)await remoteSet(id,o)}else for(const[id,o]of entries)remoteSet(id,o)}
 function del(id){const it=items.get(id);
+  if(it&&it.kind==="fuel"){for(const x of txs())if(x.fuel===id&&items.has(x.id)){items.delete(x.id);saveLocal();remoteDel(x.id)}}
+  if(it&&it.kind==="tx"&&it.fuel&&items.has(it.fuel)){items.delete(it.fuel);saveLocal();remoteDel(it.fuel)}
   if(it&&it.kind==="tx"&&it.rec){const r=items.get(it.rec);if(r&&r.paid){const p={...r.paid};for(const k in p)if(p[k]===id)delete p[k];put(it.rec,{...r,paid:p},true)}}
   items.delete(id);render();saveLocal();return remoteDel(id)}
 function setStatus(s){
@@ -205,7 +207,7 @@ function inDays(k){const n=Math.round((parse(k)-today)/864e5);return n<0?`${-n} 
 function streak(h){const c=h.checks||{};let d=c[T]?today:addDays(today,-1),n=0;while(c[iso(d)]){n++;d=addDays(d,-1)}return n}
 
 /* ---------- routing ---------- */
-const VIEWS=["start","kalendarz","zadania","finanse","nawyki","notatki"];
+const VIEWS=["start","kalendarz","zadania","finanse","samochod","nawyki","notatki"];
 function route(){
   let v=location.hash.slice(1);
   if(v==="finanse-cykliczne"){v="finanse";ui.finTab="rec"}else if(v==="finanse")ui.finTab="ov";
@@ -217,7 +219,7 @@ function route(){
 window.addEventListener("hashchange",route);
 
 /* ---------- render ---------- */
-function render(){({start:rStart,kalendarz:rCal,zadania:rTasks,finanse:rFin,nawyki:rHab,notatki:rNotes})[ui.view]()}
+function render(){({start:rStart,kalendarz:rCal,zadania:rTasks,finanse:rFin,samochod:rCar,nawyki:rHab,notatki:rNotes})[ui.view]()}
 
 const PRIO={A:"!!!",B:"!!",C:""},PRION={A:"wysoki",B:"średni",C:"niski"};
 function taskItem(t,showDate){
@@ -443,6 +445,11 @@ document.addEventListener("click",e=>{
     recCancel:resetRecForm,
     recToggle:()=>{if(it)put(id,{...it,active:it.active===false})},
     theme:toggleTheme,
+    carEdit:()=>{const f=$("#carEditForm"),open=f.hidden;f.hidden=!open;$("#carEditBtn").setAttribute("aria-expanded",open);if(open){fillCarForm();$("#ceMake").focus()}},
+    carPhotoDel:()=>{put("car",{...car(),kind:"car",photo:null});ui.carMode="3d";$("#cePhotoDel").hidden=true},
+    carMode:()=>{ui.carMode=b.dataset.m;render();if(ui.carMode==="3d")Car3D.draw()},
+    carMark:()=>{const rows=$$(`.ctask[data-part="${b.dataset.part}"]`);if(rows[0]){rows[0].scrollIntoView({behavior:"smooth",block:"center"});rows.forEach(r=>{r.classList.remove("flash");void r.offsetWidth;r.classList.add("flash")})}},
+    cfocus:()=>{if(b.dataset.part){if(ui.carMode!=="3d"){ui.carMode="3d";render()}Car3D.focus(b.dataset.part);$("#carStage").scrollIntoView({behavior:"smooth",block:"nearest"})}},
     refresh:refreshPage,
     acct:()=>{const p=$("#acctPanel");p.hidden=!p.hidden;$("#acctBtn").setAttribute("aria-expanded",!p.hidden);$("#backupMsg").textContent="";if(!p.hidden&&!sbUser)$("#authEmail").focus()},
     authMode:()=>{authMode=b.dataset.m;acctMsg("");renderAcct()},
@@ -461,7 +468,7 @@ document.addEventListener("click",e=>{
   };
   A[b.dataset.act]?.();
 });
-document.addEventListener("change",e=>{const t=e.target;if(t.dataset.act==="toggle"){const it=items.get(t.dataset.id);if(it)put(t.dataset.id,{...it,done:t.checked})}});
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset.act==="toggle"||t.dataset.act==="ctoggle"){const it=items.get(t.dataset.id);if(it)put(t.dataset.id,{...it,done:t.checked,...(t.dataset.act==="ctoggle"?{doneAt:t.checked?Date.now():null}:{})})}});
 
 $("#taskForm").addEventListener("submit",e=>{e.preventDefault();const title=$("#tTitle").value.trim();if(!title)return;
   put(uid("t"),{kind:"task",title,date:$("#tDate").value||null,prio:$("#tPrio").value,done:false,created:Date.now()});$("#tTitle").value="";$("#tTitle").focus()});
@@ -512,7 +519,7 @@ async function loadExamples(){
    .forEach(([d,time,cat,title])=>add("e",{kind:"event",title,date:D(d),time,cat}));
   [[-1,"in",7200,"Wynagrodzenie","Pensja"],[-1,"out",2150,"Mieszkanie","Czynsz"],[0,"out",86.4,"Jedzenie","Zakupy spożywcze"],[-2,"out",139,"Transport","Bilet miesięczny"],
    [-3,"out",54.9,"Rozrywka","Kino"],[-4,"out",212.3,"Jedzenie","Zakupy na tydzień"],[-6,"out",89.99,"Zdrowie","Apteka"],[-8,"out",249,"Zakupy","Buty do biegania"],
-   [-10,"in",450,"Dodatkowe","Zlecenie: projekt logo"],[-12,"out",64,"Jedzenie","Pizza ze znajomymi"],[-15,"out",180,"Transport","Paliwo"],[-20,"out",39.99,"Rozrywka","Subskrypcja muzyki"]]
+   [-10,"in",450,"Dodatkowe","Zlecenie: projekt logo"],[-12,"out",64,"Jedzenie","Pizza ze znajomymi"],[-20,"out",39.99,"Rozrywka","Subskrypcja muzyki"]]
    .forEach(([d,type,amount,cat,note])=>add("x",{kind:"tx",type,amount,cat,date:D(d),note}));
   const pat={"Woda 2 l":[1,1,0,1,1,1,0,1,1,1,1,0,1,1],"Czytanie 20 min":[1,0,1,1,0,1,1,1,0,0,1,1,1,0],"Bez telefonu po 22:00":[0,1,1,0,0,1,0,1,1,1,0,0,1,1]};
   for(const[name,p]of Object.entries(pat)){const c={};p.forEach((v,i)=>{if(v)c[D(-(i+1))]=true});add("h",{kind:"habit",name,checks:c})}
@@ -527,10 +534,20 @@ async function loadExamples(){
     if(key)for(const w of W)if(w[1].rec===key)w[1].rec=rid;
     W.push([rid,{kind:"rec",name,amount,freq,cat,start:D(d),since:D(Math.min(d,0)),active:true,paid,created:now+n++,ex:true}])}
   W.push(["settings",{kind:"settings",budget:4500,ex:true}]);
+  // car: Audi Q3 2012 with sample service items and fuel history
+  W.push(["car",{kind:"car",make:"Audi",model:"Q3",year:2012,engine:"2.0 TDI 140 KM quattro",plate:"",mileage:186400,photo:null,ex:true}]);
+  [["Wymienić żarówkę","lampa-pp",D(7),null],["Wymiana opon na zimowe","",D(29),null],["Olej i filtry","silnik",null,188200],["Pióra wycieraczek","szyba",null,null],["Rozrząd z pompą wody","silnik",null,210000]]
+    .forEach(([title,part,due,dueKm])=>add("c",{kind:"carTask",title,part,due,dueKm,done:false}));
+  W.push([uid("r"),{kind:"rec",name:"Przegląd techniczny",amount:98,freq:"yearly",cat:"Transport",start:D(132),since:D(0),active:true,paid:{},created:now+n++,ex:true}]);
+  for(let i=14;i>=0;i--){const L=i?Math.round((44+((i*7)%9))*10)/10:52.4,pr=i?6.18+((i*13)%17)/100:6.39,fid=uid("f"),date=D(-4-i*12),odo=186400-Math.round(i*705+((i*37)%60));
+    W.push([fid,{kind:"fuel",date,liters:L,cost:i?Math.round(L*pr*100)/100:334.84,odo,created:now+n++,ex:true}]);
+    W.push([uid("x"),{kind:"tx",type:"out",amount:i?Math.round(L*pr*100)/100:334.84,cat:"Transport",date,note:"Tankowanie",fuel:fid,created:now+n++,ex:true}])}
   await putMany(W);
 }
 
 /* ---------- boot ---------- */
+/*CAR_JS*/
+
 /* ---------- theme ---------- */
 const LS_THEME="life.theme",darkMQ=matchMedia("(prefers-color-scheme: dark)");
 const curTheme=()=>document.documentElement.dataset.theme||(darkMQ.matches?"dark":"light");
